@@ -58,15 +58,23 @@ const emailLogin = async (req, res) => {
     catch (error) {
         // log response
         response.message = error.message;
+
+        return helper.sendStatusErrorResponse(res, response.statusCode, response.message);
     }
 
     return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 const emailSignUp = async (req, res) => {
-    const emailSignUpRequest: EmailSignUpInterface = req[Constants.REQUEST_PAYLOAD.BODY];
+    const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    let response = {
+        message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR),
+        statusCode: helper.convertToType<number>(Constants.STATUS_CODES.INTERNAL_SERVER_ERROR),
+        token: '',
+    };
+
     try {
-        const response = await grpcRequest(
+        response = await grpcRequest(
             clients[Services.RpcRequest.AuthRpcRequest],
             Services.AuthRpcServices.EmailSignUp,
             emailSignUpRequest
@@ -75,10 +83,13 @@ const emailSignUp = async (req, res) => {
         console.log(response);
     }
     catch (error) {
-        return helper.sendStatusSuccessResponse(res, Constants.STATUS_CODES.INTERNAL_SERVER_ERROR, {});
+        // log response
+        response.message = error.message;
+
+        return helper.sendStatusErrorResponse(res, response.statusCode, response.message);
     }
 
-    return helper.sendStatusSuccessResponse(res, Constants.STATUS_CODES.ACCEPTED, {});
+    return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 export { 

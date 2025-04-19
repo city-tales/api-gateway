@@ -1,20 +1,22 @@
-export interface EmailSignUpInterface {
-    userDeviceInformation: {
-        browserInfo: string;
-        deviceId: string;
-        deviceName: string;
-        deviceType: string;
-        ipAddress: string;
-        loginTime: string;
-        platform: string;
-    };
-    userEmailSignUpRequest: {
-        alternatePhone: string;
-        email: string;
-        name: string;
-        password: string;
-        phoneNumber: string;
-        primaryCountryCode: string;
-        secondaryCountryCode: string;
-    };
-}
+import { z } from "../config/imports.js";
+
+export const EmailSignUpInterface = z.object({
+  userDeviceInformation: z.object({
+    browserInfo: z.string(),
+    deviceId: z.string(),
+    deviceName: z.string(),
+    deviceType: z.string(),
+    ipAddress: z.string(),
+    loginTime: z.string(),
+    platform: z.string(),
+  }),
+  userEmailSignUpRequest: z.object({
+    email: z.string().email(),
+    alternatePhone: z.string(),
+    name: z.string(),
+    password: z.string(),
+    phoneNumber: z.string(),
+    primaryCountryCode: z.string(),
+    secondaryCountryCode: z.string(),
+  }),
+});
