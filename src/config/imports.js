@@ -3,6 +3,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
+import { z } from "zod";
 
 const server = express();
 const AUTH_PROTO_PATH = "../shared-proto/authentication/rpc_request.proto";
@@ -15,4 +16,5 @@ export {
     grpc,
     protoLoader,
     AUTH_PROTO_PATH,
+    z,
 };

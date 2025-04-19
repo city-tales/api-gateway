@@ -173,6 +173,16 @@ enum AUTH_PURPOSE {
     LOGIN = 'login'
 };
 
+enum AUTH_RESPONSE {
+    RETRY_VERIFICATION = 'Email not verified, kindly verify email',
+};
+
+enum REQUEST_PAYLOAD {
+    BODY = 'body',
+    HEADERS = 'headers',
+    PARAMS = 'params'
+};
+
 export class Constants {
     static readonly BOOLEAN_VALUES = BOOLEAN_VALUES;
     static readonly REQUEST_METHODS = REQUEST_METHODS;
@@ -182,4 +192,6 @@ export class Constants {
     static readonly ERRORS = ERRORS;
     static readonly AUTH_CHANNELS = AUTH_CHANNELS;
     static readonly AUTH_PURPOSE = AUTH_PURPOSE;
+    static readonly AUTH_RESPONSE = AUTH_RESPONSE;
+    static readonly REQUEST_PAYLOAD = REQUEST_PAYLOAD;
 };
