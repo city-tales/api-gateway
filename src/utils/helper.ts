@@ -4,9 +4,11 @@ interface Helper {
     isArrayEitherNullOrUndefinedOrEmpty(values: any[]) : boolean;
     isNeitherNullNorUndefined(value: string) : boolean;
     isNeitherNullNorUndefinedNorEmpty(value: string) : boolean;
-    sendStatusResponse(res, statusCode: number, message: string);
+    sendStatusSuccessResponse(res, statusCode: number, response);
     sendStatusErrorResponse(res, statusCode: number, message: string);
     switchOffCaseSensitive(value: string) : string;
+    convertToClassType<T>(unknownValue: unknown, type: unknown): T;
+    convertToType<T>(unknownValue: unknown): T;
 }
 
 class HelperImpl implements Helper {
@@ -35,8 +37,8 @@ class HelperImpl implements Helper {
         return (value !== '' && this.isNeitherNullNorUndefined(value)) ? true : false;
     }
 
-    sendStatusResponse(res: any, statusCode: number, message: string) {
-        return res.status(statusCode).send(message);
+    sendStatusSuccessResponse(res: any, statusCode: number, response) {
+        return res.status(statusCode).json(response);
     }
     
     sendStatusErrorResponse(res: any, statusCode: number, message: string) {
@@ -48,6 +50,14 @@ class HelperImpl implements Helper {
 
     switchOffCaseSensitive(value: string) : string {
         return value.toLowerCase();
+    }
+
+    convertToClassType<T>(response: unknown, classType: new (...args: any[]) => T): T {
+        return response as T;
+    }
+
+    convertToType<T>(response: unknown): T {
+        return response as T;
     }
 }
 

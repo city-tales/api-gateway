@@ -6,7 +6,7 @@ import { JWT_PUBLIC_KEY } from "../config/config.js";
 export const verifyJwtToken = (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if(helper.isEitherNullOrUndefinedOrEmpty(token)) {
-        return helper.sendStatusResponse(res, Constants.STATUS_CODES.UNAUTHORIZED, Constants.JWT.EMPTY);
+        return helper.sendStatusErrorResponse(res, Constants.STATUS_CODES.UNAUTHORIZED, Constants.JWT.EMPTY);
     }
 
     try {
@@ -14,6 +14,6 @@ export const verifyJwtToken = (req, res, next) => {
         next();
     }
     catch(error) {
-        return helper.sendStatusResponse(res, Constants.STATUS_CODES.NOT_FOUND, Constants.JWT.INVALID);
+        return helper.sendStatusErrorResponse(res, Constants.STATUS_CODES.NOT_FOUND, Constants.JWT.INVALID);
     }
 }
