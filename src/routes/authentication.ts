@@ -1,3 +1,4 @@
+import { logger } from "../config/loki.js";
 import { clients } from "../config/registery.js";
 import { Services } from "../config/services.js";
 import { EmailLoginInterface } from "../interface/email_login.js";
@@ -34,6 +35,8 @@ router.post("/", async (req, res) => {
 
 const emailLogin = async (req, res) => {
     const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const context = helper.generateContext();
+
     let response = {
         message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR),
         statusCode: helper.convertToType<number>(Constants.STATUS_CODES.INTERNAL_SERVER_ERROR),
@@ -41,25 +44,45 @@ const emailLogin = async (req, res) => {
         token: '',
         verified: false,
     };
+    let loggerDefaultParams = {};
 
     try {
         response = await grpcRequest(
             clients[Services.RpcRequest.AuthRpcRequest],
             Services.AuthRpcServices.EmailLogin,
-            emailLoginRequest
+            emailLoginRequest,
+            context,
         );
 
         if(response.retryVerification) {
-            // retry verification --> show a diloag box for email verification in homepage
             response.message = Constants.AUTH_RESPONSE.RETRY_VERIFICATION;
             response.verified = false;
         }
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId);
+        logger.info(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+            labels: {
+                operation: Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST,
+                type: Constants.LOKI_LOGGER_LABELS.EMAIL,
+            },
+            loggerDefaultParams,
+            emailLoginRequest,
+            response,
+        });
     }
     catch (error) {
-        // log response
-        response.message = error.message;
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId);
+        logger.error(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+            labels: {
+                operation: Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST,
+                type: Constants.LOKI_LOGGER_LABELS.EMAIL,
+            },
+            loggerDefaultParams,
+            emailLoginRequest,
+            error,
+        });
 
-        return helper.sendStatusErrorResponse(res, response.statusCode, response.message);
+        return helper.sendStatusErrorResponse(res, error.statusCode, error.message);
     }
 
     return helper.sendStatusSuccessResponse(res, response.statusCode, response);
@@ -67,26 +90,47 @@ const emailLogin = async (req, res) => {
 
 const emailSignUp = async (req, res) => {
     const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const context = helper.generateContext();
+
     let response = {
         message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR),
         statusCode: helper.convertToType<number>(Constants.STATUS_CODES.INTERNAL_SERVER_ERROR),
         token: '',
     };
+    let loggerDefaultParams = {};
 
     try {
         response = await grpcRequest(
             clients[Services.RpcRequest.AuthRpcRequest],
             Services.AuthRpcServices.EmailSignUp,
-            emailSignUpRequest
-        );
+            emailSignUpRequest,
+            context,
+        );  
 
-        console.log(response);
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId);
+        logger.info(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+            labels: {
+                operation: Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST,
+                type: Constants.LOKI_LOGGER_LABELS.EMAIL,
+            },
+            loggerDefaultParams,
+            emailSignUpRequest,
+            response,
+        });
     }
     catch (error) {
-        // log response
-        response.message = error.message;
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId);
+        logger.error(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+            labels: {
+                operation: Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST,
+                type: Constants.LOKI_LOGGER_LABELS.EMAIL,
+            },
+            loggerDefaultParams,
+            emailSignUpRequest,
+            error
+        });
 
-        return helper.sendStatusErrorResponse(res, response.statusCode, response.message);
+        return helper.sendStatusErrorResponse(res, error.statusCode, error.message);
     }
 
     return helper.sendStatusSuccessResponse(res, response.statusCode, response);

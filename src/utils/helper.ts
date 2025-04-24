@@ -1,3 +1,5 @@
+import { uuidv4 } from "../config/imports.js";
+
 interface Helper {
     isEitherNullOrUndefined(value: string) : boolean;
     isEitherNullOrUndefinedOrEmpty(value: string) : boolean;
@@ -9,6 +11,9 @@ interface Helper {
     switchOffCaseSensitive(value: string) : string;
     convertToClassType<T>(unknownValue: unknown, type: unknown): T;
     convertToType<T>(unknownValue: unknown): T;
+    generateContext();
+    generateDefaultSuccessParams(tracerId: unknown);
+    generateDefaultFailureParams(tracerId: unknown);
 }
 
 class HelperImpl implements Helper {
@@ -58,6 +63,39 @@ class HelperImpl implements Helper {
 
     convertToType<T>(response: unknown): T {
         return response as T;
+    }
+
+    generateContext() {
+        const tracerId = uuidv4();
+        return {
+            tracerId: tracerId,
+        };
+    }
+
+    generateDefaultSuccessParams(tracerId: unknown) {
+        const timestamp = Date.now();
+        
+        return {
+            context: tracerId,
+            defaultSuccessParams: {
+                tracerId,
+                timestamp,
+                success: true,
+            },
+        };
+    }
+
+    generateDefaultFailureParams(tracerId: unknown) {
+        const timestamp = Date.now();
+        
+        return {
+            context: tracerId,
+            defaultFailureParams: {
+                tracerId,
+                timestamp,
+                success: false,
+            },
+        };
     }
 }
 
