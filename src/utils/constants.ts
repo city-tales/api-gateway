@@ -1,6 +1,6 @@
 enum LOKI_LOGGER {
     TARGET = 'winston-loki',
-    APPLICATION = 'authentication',
+    APPLICATION = 'api-gateway',
     DEMOENV = 'demo',
     PRODENV = 'prod',
 };
@@ -199,6 +199,10 @@ enum ERRORS {
     NETWORK_AUTHENTICATION_REQUIRED = "Network authentication is required to access this resource."
 };
 
+enum DEMO_SWITCH {
+    LOKI_LOGGER = 'true',
+};
+
 export class Constants {
     static readonly LOKI_LOGGER = LOKI_LOGGER;
     static readonly LOKI_LOGGER_LABELS = LOKI_LOGGER_LABELS;
@@ -217,4 +221,6 @@ export class Constants {
 
     static readonly STATUS_CODES = STATUS_CODES;
     static readonly ERRORS = ERRORS;
+
+    static readonly DEMO_SWITCH = DEMO_SWITCH;
 };

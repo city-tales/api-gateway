@@ -1,4 +1,5 @@
 import { Constants } from "../utils/constants.js";
+import { helper } from "../utils/helper.js";
 import { lokiLoggerUrl, lokiLoggerUser, lokiLoggerToken } from "./config.js";
 import { createLogger, LokiTransport, winston } from "./imports.js";
 
@@ -7,9 +8,8 @@ const options = {
         new LokiTransport({
             host: lokiLoggerUrl!,
             labels: { 
-                app: Constants.LOKI_LOGGER.APPLICATION,
-                env: Constants.LOKI_LOGGER.DEMOENV, // For local environment
-                // env: Constants.LOKI_LOGGER.PRODENV, // For prod environment
+                application: Constants.LOKI_LOGGER.APPLICATION,
+                environment: helper.convertToType<boolean>(Constants.DEMO_SWITCH.LOKI_LOGGER) ? Constants.LOKI_LOGGER.DEMOENV : Constants.LOKI_LOGGER.PRODENV,
             }, // default labels
             json: true,
             basicAuth: `${lokiLoggerUser}:${lokiLoggerToken}`,

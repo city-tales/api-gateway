@@ -60,24 +60,24 @@ const emailLogin = async (req, res) => {
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId);
-        logger.info(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+        logger.info({
             labels: {
                 operation: Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST,
                 type: Constants.LOKI_LOGGER_LABELS.EMAIL,
             },
-            loggerDefaultParams,
+            ...loggerDefaultParams,
             emailLoginRequest,
             response,
         });
     }
     catch (error) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId);
-        logger.error(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+        logger.error({
             labels: {
                 operation: Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST,
                 type: Constants.LOKI_LOGGER_LABELS.EMAIL,
             },
-            loggerDefaultParams,
+            ...loggerDefaultParams,
             emailLoginRequest,
             error,
         });
@@ -108,24 +108,24 @@ const emailSignUp = async (req, res) => {
         );  
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId);
-        logger.info(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+        logger.info({
             labels: {
                 operation: Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST,
                 type: Constants.LOKI_LOGGER_LABELS.EMAIL,
             },
-            loggerDefaultParams,
+            ...loggerDefaultParams,
             emailSignUpRequest,
             response,
         });
     }
     catch (error) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId);
-        logger.error(Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE, {
+        logger.error({
             labels: {
                 operation: Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST,
                 type: Constants.LOKI_LOGGER_LABELS.EMAIL,
             },
-            loggerDefaultParams,
+            ...loggerDefaultParams,
             emailSignUpRequest,
             error
         });

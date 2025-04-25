@@ -1,4 +1,5 @@
 import { uuidv4 } from "../config/imports.js";
+import { Constants } from "./constants.js";
 
 interface Helper {
     isEitherNullOrUndefined(value: string) : boolean;
@@ -76,12 +77,10 @@ class HelperImpl implements Helper {
         const timestamp = Date.now();
         
         return {
-            context: tracerId,
-            defaultSuccessParams: {
-                tracerId,
-                timestamp,
-                success: true,
-            },
+            success: true,
+            distributedTraceId: tracerId,
+            timestamp: timestamp,
+            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
         };
     }
 
@@ -89,12 +88,10 @@ class HelperImpl implements Helper {
         const timestamp = Date.now();
         
         return {
-            context: tracerId,
-            defaultFailureParams: {
-                tracerId,
-                timestamp,
-                success: false,
-            },
+            success: false,
+            distributedTraceId: tracerId,
+            timestamp: timestamp,
+            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
         };
     }
 }
