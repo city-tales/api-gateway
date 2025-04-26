@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
+    "build": "tsc && cp -r src/views dist/views",
     "start": "node dist/index.js",
     "pretty": "prettier --print-width 160 --write \"**/*.ts\""
   },
@@ -17,8 +17,12 @@
     "@grpc/grpc-js": "^1.13.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
     "express": "^5.1.0",
+    "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.1",
+    "path": "^0.12.7",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-loki": "^6.1.3",

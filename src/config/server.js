@@ -1,5 +1,9 @@
-import { cors, express, server } from "./imports.js";
+import { cors, express, path, server, fileURLToPath } from "./imports.js";
 import { Constants } from "../utils/constants.js";
+
+const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+const __dirname = path.resolve(path.dirname(__filename), '..');
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
@@ -12,6 +16,9 @@ server.use(
         allowedHeaders: [Constants.REQUEST_HEADERS.CONTENT_TYPE, Constants.REQUEST_HEADERS.AUTHORIZATION ],
     })
 );
+
+server.set("views", path.join(__dirname, "../views"));
+server.set("view engine", "ejs");
 
 server.use((err, req, res, next) => {
 
@@ -31,5 +38,7 @@ server.use((err, req, res, next) => {
 });
 
 export {
-    server
+    server,
+    __dirname,
+    __filename
 };

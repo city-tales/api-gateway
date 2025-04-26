@@ -11,8 +11,23 @@ enum LOKI_LOGGER_LABELS {
     LOGIN_REQUEST = 'login-request',
     EMAIL = 'email',
     GOOGLE = 'google',
-    PASSWORDLESS = 'passwordless'
+    PASSWORDLESS = 'passwordless',
+    WORKER = 'worker',
 };
+
+enum DEMO_SWITCH {
+    LOKI_LOGGER = 'true',
+};
+
+enum NODE_MAILER_MESSAGE {
+    SEND_EMAIL_FOR_VERIFICATION = 'sendEmailForVerification',
+    SUBJECT = 'Verify Account',
+    ENCODING = 'utf8',
+};
+
+enum EJS_PATHS {
+    EMAIl_VERIFY = './views/email_verify.ejs',
+}
 
 enum AUTH_CHANNELS {
     EMAIL = 'email',
@@ -60,6 +75,26 @@ enum JWT {
     EMPTY = 'Empty token',
     INVALID = 'Invalid Token',
 };  
+
+enum SIGNUP_MESSAGE {
+    EMPTY_TOKEN = '',
+    PROCESSING = 'Processing',
+    CREATED = 'Account has been created successfully',
+    EXISTING_USER = 'Account already exists',
+    FAILED = 'Account creation failed',
+    NO_CONTENT = 'Account do not exists',
+};
+
+enum LOGIN_MESSAGE {
+    EMPTY_TOKEN = '',
+    PROCESSING = 'Processing',
+    NOT_VERIFIED = 'Please verify email',
+    NO_CONTENT = 'Account do not exists',
+    EMAIL_DO_NOT_EXISTS = 'Email do not exists',
+    WRONG_AUTHENTICATION = 'Wrong Password',
+    SUCCESS = 'Logging In',
+    FAILED = 'Server Error',
+};
 
 enum STATUS_CODES {
     CONTINUE = 100,                           // Request received, please continue.
@@ -199,13 +234,13 @@ enum ERRORS {
     NETWORK_AUTHENTICATION_REQUIRED = "Network authentication is required to access this resource."
 };
 
-enum DEMO_SWITCH {
-    LOKI_LOGGER = 'true',
-};
-
 export class Constants {
     static readonly LOKI_LOGGER = LOKI_LOGGER;
     static readonly LOKI_LOGGER_LABELS = LOKI_LOGGER_LABELS;
+
+    static readonly DEMO_SWITCH = DEMO_SWITCH;
+    static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
+    static readonly EJS_PATHS = EJS_PATHS;
 
     static readonly AUTH_CHANNELS = AUTH_CHANNELS;
     static readonly AUTH_PURPOSE = AUTH_PURPOSE;
@@ -219,8 +254,9 @@ export class Constants {
 
     static readonly JWT = JWT;
 
+    static readonly SIGNUP_MESSAGE = SIGNUP_MESSAGE;
+    static readonly LOGIN_MESSAGE = LOGIN_MESSAGE;
+
     static readonly STATUS_CODES = STATUS_CODES;
     static readonly ERRORS = ERRORS;
-
-    static readonly DEMO_SWITCH = DEMO_SWITCH;
 };
