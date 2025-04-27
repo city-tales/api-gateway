@@ -1,6 +1,43 @@
+enum LOKI_LOGGER {
+    TARGET = 'winston-loki',
+    APPLICATION = 'api-gateway',
+    DEMOENV = 'demo',
+    PRODENV = 'prod',
+};
+
+enum LOKI_LOGGER_LABELS {
+    REQUEST_TYPE = 'https',
+    SIGNUP_REQUEST = 'signup-request',
+    LOGIN_REQUEST = 'login-request',
+    EMAIL = 'email',
+    GOOGLE = 'google',
+    PASSWORDLESS = 'passwordless'
+};
+
+enum AUTH_CHANNELS {
+    EMAIL = 'email',
+    GOOGLE = 'google',
+    PASSWORDLESS = 'passwordless'
+};
+
+enum AUTH_PURPOSE {
+    SIGNUP = 'register',
+    LOGIN = 'login'
+};
+
+enum AUTH_RESPONSE {
+    RETRY_VERIFICATION = 'Email not verified, kindly verify email',
+};
+
 enum BOOLEAN_VALUES {
     TRUE = 'TRUE',
     FALSE = 'FALSE',
+};
+
+enum REQUEST_PAYLOAD {
+    BODY = 'body',
+    HEADERS = 'headers',
+    PARAMS = 'params'
 };
 
 enum REQUEST_METHODS {
@@ -162,36 +199,28 @@ enum ERRORS {
     NETWORK_AUTHENTICATION_REQUIRED = "Network authentication is required to access this resource."
 };
 
-enum AUTH_CHANNELS {
-    EMAIL = 'email',
-    GOOGLE = 'google',
-    PASSWORDLESS = 'passwordless'
-};
-
-enum AUTH_PURPOSE {
-    SIGNUP = 'register',
-    LOGIN = 'login'
-};
-
-enum AUTH_RESPONSE {
-    RETRY_VERIFICATION = 'Email not verified, kindly verify email',
-};
-
-enum REQUEST_PAYLOAD {
-    BODY = 'body',
-    HEADERS = 'headers',
-    PARAMS = 'params'
+enum DEMO_SWITCH {
+    LOKI_LOGGER = 'true',
 };
 
 export class Constants {
-    static readonly BOOLEAN_VALUES = BOOLEAN_VALUES;
-    static readonly REQUEST_METHODS = REQUEST_METHODS;
-    static readonly REQUEST_HEADERS = REQUEST_HEADERS;
-    static readonly JWT = JWT;
-    static readonly STATUS_CODES = STATUS_CODES;
-    static readonly ERRORS = ERRORS;
+    static readonly LOKI_LOGGER = LOKI_LOGGER;
+    static readonly LOKI_LOGGER_LABELS = LOKI_LOGGER_LABELS;
+
     static readonly AUTH_CHANNELS = AUTH_CHANNELS;
     static readonly AUTH_PURPOSE = AUTH_PURPOSE;
     static readonly AUTH_RESPONSE = AUTH_RESPONSE;
+
+    static readonly BOOLEAN_VALUES = BOOLEAN_VALUES;
+
     static readonly REQUEST_PAYLOAD = REQUEST_PAYLOAD;
+    static readonly REQUEST_METHODS = REQUEST_METHODS;
+    static readonly REQUEST_HEADERS = REQUEST_HEADERS;
+
+    static readonly JWT = JWT;
+
+    static readonly STATUS_CODES = STATUS_CODES;
+    static readonly ERRORS = ERRORS;
+
+    static readonly DEMO_SWITCH = DEMO_SWITCH;
 };

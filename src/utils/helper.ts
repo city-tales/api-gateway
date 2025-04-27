@@ -1,3 +1,6 @@
+import { uuidv4 } from "../config/imports.js";
+import { Constants } from "./constants.js";
+
 interface Helper {
     isEitherNullOrUndefined(value: string) : boolean;
     isEitherNullOrUndefinedOrEmpty(value: string) : boolean;
@@ -9,6 +12,9 @@ interface Helper {
     switchOffCaseSensitive(value: string) : string;
     convertToClassType<T>(unknownValue: unknown, type: unknown): T;
     convertToType<T>(unknownValue: unknown): T;
+    generateContext();
+    generateDefaultSuccessParams(tracerId: unknown);
+    generateDefaultFailureParams(tracerId: unknown);
 }
 
 class HelperImpl implements Helper {
@@ -58,6 +64,35 @@ class HelperImpl implements Helper {
 
     convertToType<T>(response: unknown): T {
         return response as T;
+    }
+
+    generateContext() {
+        const tracerId = uuidv4();
+        return {
+            tracerId: tracerId,
+        };
+    }
+
+    generateDefaultSuccessParams(tracerId: unknown) {
+        const timestamp = Date.now();
+        
+        return {
+            success: true,
+            distributedTraceId: tracerId,
+            timestamp: timestamp,
+            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
+        };
+    }
+
+    generateDefaultFailureParams(tracerId: unknown) {
+        const timestamp = Date.now();
+        
+        return {
+            success: false,
+            distributedTraceId: tracerId,
+            timestamp: timestamp,
+            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
+        };
     }
 }
 

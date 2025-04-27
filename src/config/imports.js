@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import { z } from "zod";
+import { v4 as uuidv4 } from 'uuid';
+import { createLogger, transports, format } from "winston";
+import winston from "winston";
+import LokiTransport from 'winston-loki';
 
 const server = express();
 const AUTH_PROTO_PATH = "../shared-proto/authentication/rpc_request.proto";
@@ -17,4 +21,10 @@ export {
     protoLoader,
     AUTH_PROTO_PATH,
     z,
+    uuidv4,
+    createLogger,
+    transports,
+    format,
+    winston,
+    LokiTransport,
 };
