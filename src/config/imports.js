@@ -1,10 +1,14 @@
 import express  from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import lodash from "lodash";
+import _ from 'lodash';
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
+import redis from "redis"; const { createClient } = redis;
+import { Worker, Job, Queue } from 'bullmq';
 import { createLogger, transports, format } from "winston";
 import winston from "winston";
 import LokiTransport from 'winston-loki';
@@ -21,12 +25,18 @@ export {
     express,
     cors,
     jwt,
+    lodash,
+    _,
     server,
     grpc,
     protoLoader,
     AUTH_PROTO_PATH,
     z,
     uuidv4,
+    createClient,
+    Worker,
+    Job,
+    Queue,
     createLogger,
     transports,
     format,

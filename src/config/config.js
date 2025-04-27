@@ -16,6 +16,15 @@ const nodeMailerService = process.env.NODEMAILER_SERVICE;
 const nodeMailerPort = process.env.NODEMAILER_PORT;
 const nodeMailerUser = process.env.NODEMAILER_USER_EMAIL;
 const nodeMailerPassword = process.env.NODEMAILER_USER_PASSWORD;
+const cacheDBRedisUsername = process.env.CACHE_DB_REDIS_USERNAME;
+const cacheDBRedisPassword = process.env.CACHE_DB_REDIS_PASSWORD;
+const cacheDBRedisHost = process.env.CACHE_DB_REDIS_HOST;
+const cacheDBRedisPort = process.env.CACHE_DB_REDIS_PORT;
+const queueDBRedisUsername = process.env.QUEUE_DB_REDIS_USERNAME;
+const queueDBRedisPassword = process.env.QUEUE_DB_REDIS_PASSWORD;
+const queueDBRedisHost = process.env.QUEUE_DB_REDIS_HOST;
+const queueDBRedisPort = parseInt(process.env.QUEUE_DB_REDIS_PORT);
+const queueDBRedisUrl = process.env.QUEUE_DB_REDIS_URL;
 
 export {
     organisation,
@@ -34,4 +43,13 @@ export {
     nodeMailerPort,
     nodeMailerUser,
     nodeMailerPassword,
+    cacheDBRedisUsername,
+    cacheDBRedisPassword,
+    cacheDBRedisHost,
+    cacheDBRedisPort,
+    queueDBRedisUsername,
+    queueDBRedisPassword,
+    queueDBRedisHost,
+    queueDBRedisPort,
+    queueDBRedisUrl,
 };

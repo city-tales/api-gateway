@@ -9,7 +9,7 @@ const options = {
             host: lokiLoggerUrl!,
             labels: { 
                 application: Constants.LOKI_LOGGER.APPLICATION,
-                environment: helper.convertToType<boolean>(Constants.DEMO_SWITCH.LOKI_LOGGER) ? Constants.LOKI_LOGGER.DEMOENV : Constants.LOKI_LOGGER.PRODENV,
+                environment: helper.convertToType<boolean>(Constants.DEMO_SWITCH.LOKI_LOGGER, Constants.TYPE_SWITCH.BOOLEAN) ? Constants.LOKI_LOGGER.DEMOENV : Constants.LOKI_LOGGER.PRODENV,
             }, // default labels
             json: true,
             basicAuth: `${lokiLoggerUser}:${lokiLoggerToken}`,

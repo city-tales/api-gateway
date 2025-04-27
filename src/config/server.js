@@ -1,8 +1,8 @@
 import { cors, express, path, server, fileURLToPath } from "./imports.js";
 import { Constants } from "../utils/constants.js";
+import { queueEmployee } from "../utils/worker.js";
 
 const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
 const __dirname = path.resolve(path.dirname(__filename), '..');
 
 server.use(express.json());

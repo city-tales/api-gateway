@@ -1,3 +1,39 @@
+import { serverUrl } from "../config/config.js";
+
+enum DEV_CONTROLLER {
+    SWTICH_OFF_REDIS = 'false'
+};
+
+enum DEMO_SWITCH {
+    LOKI_LOGGER = 'true',
+};
+
+enum DB {
+    SAVE_IN_REDIS = 'saveInRedis',
+}
+
+enum QUEUE_DB {
+    MAX_ATTEMPTS = 3,
+    BACKOFF_EXPONENTIAL = 'exponential',
+    STALLED_TIMEOUT_INTERVAL = 300000,
+    GUARD_TIMEOUT_INTERVAL = 5000,
+    DRAIN_DELAY_TIMEOUT = 300,
+    BACKOFF_DELAY = 5000,
+    JOB_TIMEOUT = 10000,
+    LOCK_DURATION = 30000,
+    CONCURRENCY = 5,
+    EMAIL_VERIFICATION = 'emailVerification',
+};
+
+enum DB_TIMEOUTS {
+    CONNECTION_TIMEOUT = 10000,
+    QUERY_TIMEOUT = 10000,
+    LOCK_TIMEOUT = 10000,
+    IDLE_TIMEOUT = 10000,
+    CACHE_DB_REDIS_TIMEOUT = 600,
+    LONG_CACHE_DB_REDIS_TIMEOUT = 86400,
+};
+
 enum LOKI_LOGGER {
     TARGET = 'winston-loki',
     APPLICATION = 'api-gateway',
@@ -6,27 +42,47 @@ enum LOKI_LOGGER {
 };
 
 enum LOKI_LOGGER_LABELS {
+    ADD_JOB_TO_QUEUE = 'addJobToQueue',
+    JOB_ADDED = 'jobAddedToQueue',
+    REGISTER_JOB = 'registerWorker',
+    REGISTER_REDIS_WORKER = DB.SAVE_IN_REDIS,
+    PERFORM_JOB = 'jobInAction',
+    FAILED_JOB = 'jobFailed',
+
     REQUEST_TYPE = 'https',
-    SIGNUP_REQUEST = 'signup-request',
-    LOGIN_REQUEST = 'login-request',
+    SIGNUP_REQUEST = 'signupRequest',
+    LOGIN_REQUEST = 'loginRequest',
+    EMAIL_VERIFICATION = 'emailVerification',
+
     EMAIL = 'email',
     GOOGLE = 'google',
     PASSWORDLESS = 'passwordless',
+
+    QUEUE = 'queue',
     WORKER = 'worker',
+    CACHE_DB = 'cache-db',
+    QUEUE_DB = 'queue-db'
 };
 
-enum DEMO_SWITCH {
-    LOKI_LOGGER = 'true',
+enum SERIALISATION_KEYS {
+    USER = 'USER',
+    DEVICE = 'DEVICE',
+    EMAIL = 'EMAIL',
+    COUNTRY_CODE = 'COUNTRY_CODE',
+    PHONE_NUMBER = 'PHONE_NUMBER',
 };
 
-enum NODE_MAILER_MESSAGE {
-    SEND_EMAIL_FOR_VERIFICATION = 'sendEmailForVerification',
-    SUBJECT = 'Verify Account',
-    ENCODING = 'utf8',
-};
+enum ROUTES {
+    HOME = '/',
+    AUTHENTICATION = '/api/authentication',
+    SIGNUP = '/email/register',
+    LOGIN = '/email/login',
+    RETRY_EMAIL_VERIFICATION = '/email/retryVerification',
+    EMAIL_VERIFICATION = '/verify/:id',
+}
 
-enum EJS_PATHS {
-    EMAIl_VERIFY = './views/email_verify.ejs',
+export const URL = {
+    SIGNUP_REQUEST: `${serverUrl}${ROUTES.AUTHENTICATION}`,
 }
 
 enum AUTH_CHANNELS {
@@ -37,7 +93,8 @@ enum AUTH_CHANNELS {
 
 enum AUTH_PURPOSE {
     SIGNUP = 'register',
-    LOGIN = 'login'
+    LOGIN = 'login',
+    RETRY_EMAIL_VERIFICATION = 'retryEmailVerification',
 };
 
 enum AUTH_RESPONSE {
@@ -47,6 +104,15 @@ enum AUTH_RESPONSE {
 enum BOOLEAN_VALUES {
     TRUE = 'TRUE',
     FALSE = 'FALSE',
+};
+
+enum TYPE_SWITCH {
+    BOOLEAN = 'boolean',
+    NATIVE_OBJECT = 'object',
+    OBJECT = 'Object',
+    STRING = 'string',
+    NUMBER = 'number',
+    INTERFACE = 'interface',
 };
 
 enum REQUEST_PAYLOAD {
@@ -74,7 +140,13 @@ enum JWT {
     UNAUTHORIZED = 'Action not allowed',
     EMPTY = 'Empty token',
     INVALID = 'Invalid Token',
+    MISSING = 'Missing Token',
 };  
+
+enum JWT_CONFIG {
+    EXPIRY = '1d',
+    ALGORITHM = 'ES256'
+}
 
 enum SIGNUP_MESSAGE {
     EMPTY_TOKEN = '',
@@ -95,6 +167,21 @@ enum LOGIN_MESSAGE {
     SUCCESS = 'Logging In',
     FAILED = 'Server Error',
 };
+
+enum REDIS_MESSAGE {
+    FAILED = 'Redis Failure',
+    NO_CONTENT = 'No Data In Redis',
+};
+
+enum NODE_MAILER_MESSAGE {
+    SEND_EMAIL_FOR_VERIFICATION = 'sendEmailForVerification',
+    SUBJECT = 'Verify Account',
+    ENCODING = 'utf8',
+};
+
+enum EJS_PATHS {
+    RETRY_EMAIL_VERIFICATION = './views/email_verify.ejs',
+}
 
 enum STATUS_CODES {
     CONTINUE = 100,                           // Request received, please continue.
@@ -235,27 +322,37 @@ enum ERRORS {
 };
 
 export class Constants {
+    static readonly DEV_CONTROLLER = DEV_CONTROLLER;
+    static readonly DEMO_SWITCH = DEMO_SWITCH;
+
+    static readonly DB = DB;
+    static readonly QUEUE_DB = QUEUE_DB;
+    static readonly DB_TIMEOUTS = DB_TIMEOUTS;
+
     static readonly LOKI_LOGGER = LOKI_LOGGER;
     static readonly LOKI_LOGGER_LABELS = LOKI_LOGGER_LABELS;
+    static readonly SERIALISATION_KEYS = SERIALISATION_KEYS;
 
-    static readonly DEMO_SWITCH = DEMO_SWITCH;
-    static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
-    static readonly EJS_PATHS = EJS_PATHS;
-
+    static readonly ROUTES = ROUTES;
     static readonly AUTH_CHANNELS = AUTH_CHANNELS;
     static readonly AUTH_PURPOSE = AUTH_PURPOSE;
     static readonly AUTH_RESPONSE = AUTH_RESPONSE;
-
+    
     static readonly BOOLEAN_VALUES = BOOLEAN_VALUES;
+    static readonly TYPE_SWITCH = TYPE_SWITCH;
 
     static readonly REQUEST_PAYLOAD = REQUEST_PAYLOAD;
     static readonly REQUEST_METHODS = REQUEST_METHODS;
     static readonly REQUEST_HEADERS = REQUEST_HEADERS;
 
     static readonly JWT = JWT;
+    static readonly JWT_CONFIG = JWT_CONFIG;
 
     static readonly SIGNUP_MESSAGE = SIGNUP_MESSAGE;
     static readonly LOGIN_MESSAGE = LOGIN_MESSAGE;
+    static readonly REDIS_MESSAGE = REDIS_MESSAGE;
+    static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
+    static readonly EJS_PATHS = EJS_PATHS;
 
     static readonly STATUS_CODES = STATUS_CODES;
     static readonly ERRORS = ERRORS;
