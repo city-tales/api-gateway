@@ -7,6 +7,7 @@ const organisationContact = process.env.ORGANISATION_CONTACT;
 const port = process.env.PORT;
 const jwtPublicKey = process.env.JWT_PUBLIC_KEY;
 const serverUrl = process.env.SERVER_URL;
+const frontendUrl = process.env.FRONTEND_URL;
 const grpcBaseUrl = process.env.GRPC_BASE_URL;
 const lokiLoggerName = process.env.LOKI_LOGGER_NAME;
 const lokiLoggerUrl = process.env.LOKI_LOGGER_URL;
@@ -34,6 +35,7 @@ export {
     port,
     jwtPublicKey,
     serverUrl,
+    frontendUrl,
     grpcBaseUrl,
     lokiLoggerName,
     lokiLoggerUrl,

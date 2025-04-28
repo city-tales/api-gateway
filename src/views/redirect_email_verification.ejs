@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Email Verified</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f2f2f2;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    .checkmark {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      stroke-width: 10;
+      stroke-miterlimit: 10;
+      stroke: #2ecc71;
+      fill: none;
+      width: 100px;
+      height: 100px;
+      animation: draw 0.5s ease-in-out 0s 1 normal forwards;
+    }
+
+    .circle {
+      stroke: #2ecc71;
+      fill: none;
+      stroke-width: 5;
+      stroke-dasharray: 250;
+      stroke-dashoffset: 250;
+      animation: fillCircle 1s ease-in-out forwards;
+    }
+
+    .tick {
+      fill: none;
+      stroke: #2ecc71;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawTick 0.8s ease-in-out forwards;
+    }
+
+    @keyframes draw {
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes fillCircle {
+      0% {
+        stroke-dashoffset: 250;
+      }
+
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes drawTick {
+      0% {
+        stroke-dashoffset: 100;
+      }
+
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    h1 {
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      color: #333;
+      margin-top: 30px;
+    }
+
+    button {
+      background-color: #2ecc71;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #27ae60;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+      <circle class="circle" cx="26" cy="26" r="25" />
+      <path class="tick" fill="none" d="M14 27l10.917 10.917L38 17" />
+    </svg>
+    <h1> "<%= messageToShow %>" </h1>
+    <% if (buttonToShow) { %>
+      <button onclick="login()">Login</button>
+      <% } %>
+
+  </div>
+
+  <script>
+    const frontendUrl = "<%= frontendUrl %>";
+    function login() {
+      window.location.href = frontendUrl;
+    }
+  </script>
+</body>
+
+</html>
