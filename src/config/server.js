@@ -1,12 +1,12 @@
-import { cors, express, path, server, fileURLToPath } from "./imports.js";
+import { cors, express, path, server, fileURLToPath, cookieParser } from "./imports.js";
 import { Constants } from "../utils/constants.js";
-import { queueEmployee } from "../utils/worker.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.resolve(path.dirname(__filename), '..');
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
+server.use(cookieParser());
 
 server.use(
     cors({
@@ -17,7 +17,7 @@ server.use(
     })
 );
 
-server.set("views", path.join(__dirname, "../views"));
+server.set("views", path.join(__dirname, "views"));
 server.set("view engine", "ejs");
 
 server.use((err, req, res, next) => {

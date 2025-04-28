@@ -1,4 +1,5 @@
 import express  from "express";
+import cookieParser from 'cookie-parser';
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import lodash from "lodash";
@@ -23,6 +24,7 @@ const AUTH_PROTO_PATH = "../shared-proto/authentication/rpc_request.proto";
 
 export {
     express,
+    cookieParser,
     cors,
     jwt,
     lodash,

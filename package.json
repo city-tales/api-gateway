@@ -16,6 +16,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.13.1",
     "bullmq": "^5.51.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
