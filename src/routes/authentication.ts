@@ -198,7 +198,7 @@ const emailSignUp = async (req, res) => {
         );
 
         if (response.message === Constants.SIGNUP_MESSAGE.CREATED || Constants.SIGNUP_MESSAGE.EXISTING_USER) {
-            if (!response.verified && helper.isNeitherNullNorUndefined(response.token)) {
+            if (helper.isNeitherNullNorUndefined(response.token)) {
                 const payload = helper.decryptAuthToken(response.token);
                 const userInfoForRedisKey = {
                     email: emailSignUpRequest.userEmailSignUpRequest.email,
@@ -217,7 +217,9 @@ const emailSignUp = async (req, res) => {
                     key: redisKey,
                     value: helper.serialiseRedisKeyValues(redisEmailValue)
                 });
+            }
 
+            if(!response.verified) {
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
                     token: response.token,
                     name: emailSignUpRequest.userEmailSignUpRequest.name,
