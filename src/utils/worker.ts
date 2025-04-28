@@ -39,6 +39,12 @@ class QueueImpl implements QueueInterface {
             type: labels.type,
         };
         let loggerDefaultParams = {};
+        let logPayload = {
+            labels,
+            params,
+            queueLabel,
+            queueJobConfig,
+        };
         
         try {
             await queue.add(queueWorker, {
@@ -48,25 +54,18 @@ class QueueImpl implements QueueInterface {
             }, queueJobConfig);
 
             loggerDefaultParams = helper.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.QUEUE);
-            logger.info({
-                queueLabel,
-                ...loggerDefaultParams,
-                params,
-                queueJobConfig,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
         }
         catch (error) {
             loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.QUEUE);
-            logger.error({
-                queueLabel,
-                ...loggerDefaultParams,
-                params,
-                queueJobConfig,
-                error,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logErrorStack(logPayload, error);
+            logger.error({ ...logPayload });
 
             throw error;
         }
+
+        logger.info({ ...logPayload });
     }
 
     startWorkers() {
@@ -80,18 +79,20 @@ class QueueImpl implements QueueInterface {
                 type: queueLabel.type
             };
             let loggerDefaultParams = {};
+            let logPayload = {
+                registerWorkerLabel,
+                params,
+                distributedTraceId: tracerId,
+            };
 
             try {
                 await helper.setRedis(tracerId, registerWorkerLabel, key, helper.serialiseRedisKeyValues(value), timeout);
             }
             catch (error) {
                 loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.DB.SAVE_IN_REDIS);
-                logger.error({
-                    registerWorkerLabel,
-                    ...loggerDefaultParams,
-                    params,
-                    error,
-                });
+                logPayload = { ...logPayload, ...loggerDefaultParams };
+                logPayload = helper.logErrorStack(logPayload, error);
+                logger.error({ ...logPayload });
 
                 throw new Error(error);
             }
@@ -107,6 +108,11 @@ class QueueImpl implements QueueInterface {
                 type: queueLabel.type
             };
             let loggerDefaultParams = {};
+            let logPayload = {
+                registerWorkerLabel,
+                params,
+                distributedTraceId: tracerId,
+            };
 
             try {
                 await helper.sendEmailForVerification(tracerId, {
@@ -119,12 +125,9 @@ class QueueImpl implements QueueInterface {
             }
             catch (error) {
                 loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.QUEUE_DB.EMAIL_VERIFICATION);
-                logger.error({
-                    registerWorkerLabel,
-                    ...loggerDefaultParams,
-                    params,
-                    error,
-                });
+                logPayload = { ...logPayload, ...loggerDefaultParams };
+                logPayload = helper.logErrorStack(logPayload, error);
+                logger.error({ ...logPayload });
 
                 throw error;
             }
@@ -140,17 +143,19 @@ class QueueImpl implements QueueInterface {
 
         this.workers.set(queueName, worker);
         let loggerDefaultParams = {};
+        let logPayload = {
+            queueName,
+        };
         
         worker.on('completed', job => {
             const { tracerId, queueLabel } = job?.data || {};
 
             loggerDefaultParams = helper.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.LOKI_LOGGER_LABELS.PERFORM_JOB);
-            logger.info({
-                queueLabel,
-                ...loggerDefaultParams,
-                ...job,
-                queueName,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = { ...logPayload, ...queueLabel };
+            logPayload = { ...logPayload, ...tracerId };
+            logPayload = { ...logPayload, ...job };
+            logger.info({ ...logPayload });
         });
 
         worker.on('failed', (job, error) => {
@@ -158,13 +163,12 @@ class QueueImpl implements QueueInterface {
             const { tracerId, queueLabel } = job?.data || {};
 
             loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.LOKI_LOGGER_LABELS.FAILED_JOB);
-            logger.error({
-                queueLabel,
-                ...loggerDefaultParams,
-                ...job,
-                queueName,
-                error,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = { ...logPayload, ...queueLabel };
+            logPayload = { ...logPayload, ...tracerId };
+            logPayload = { ...logPayload, ...job };
+            logPayload = helper.logErrorStack(logPayload, error);
+            logger.error({ ...logPayload });
         });
     }
 }

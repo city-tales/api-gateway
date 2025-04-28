@@ -29,6 +29,8 @@ interface Helper {
     serialiseRedisKeyValues(keyValuePairs: Object): string;
     parseRedisValueToObject(value: string);
     setRedis(tracerId: string, labels, key: string, value: string, timeout?: number): Promise<void>;
+    logErrorStack(logPayload: any, error: any);
+    logResponse(logPayload: any, response);
 }
 
 class HelperImpl implements Helper {
@@ -40,9 +42,9 @@ class HelperImpl implements Helper {
         return (value === '' || this.isEitherNullOrUndefined(value)) ? true : false;
     }
 
-    isArrayEitherNullOrUndefinedOrEmpty(values: any[]) : boolean {
+    isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean {
         let isValueEitherNullOrUndefinedOrEmpty: boolean = false;
-        for(let index = 0; index < values.length; ++index) {
+        for (let index = 0; index < values.length; ++index) {
             isValueEitherNullOrUndefinedOrEmpty &&= this.isEitherNullOrUndefinedOrEmpty(values[index]);
         }
 
@@ -64,7 +66,7 @@ class HelperImpl implements Helper {
     sendStatusSuccessResponse(res: any, statusCode: number, response) {
         return res.status(statusCode).json(response);
     }
-    
+
     sendStatusErrorResponse(res: any, message: string, statusCode: number | undefined | null) {
         const code = this.isGenericNeitherNullNorUndefined(statusCode) ? statusCode : Constants.STATUS_CODES.INTERNAL_SERVER_ERROR;
         return res.status(code).json({
@@ -73,7 +75,7 @@ class HelperImpl implements Helper {
         });
     }
 
-    switchOffCaseSensitive(value: string) : string {
+    switchOffCaseSensitive(value: string): string {
         return value.toLowerCase();
     }
 
@@ -95,10 +97,6 @@ class HelperImpl implements Helper {
             if (typeof response === 'string') {
                 return JSON.parse(response) as T;
             }
-            return response as T;
-        }
-        if (type === 'interface') {
-            return response as T;
         }
         return response as T;
     }
@@ -112,12 +110,12 @@ class HelperImpl implements Helper {
 
     generateDefaultSuccessParams(tracerId: unknown, codeIdentifier?: string, source?: string | undefined) {
         const timestamp = Date.now();
-        
+
         return {
             success: true,
             distributedTraceId: tracerId,
             timestamp: timestamp,
-            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
+            requestType: Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
             ...(this.isNeitherNullNorUndefinedNorEmpty(codeIdentifier!) && { codeIdentifier }),
             ...(this.isNeitherNullNorUndefinedNorEmpty(source!) && { source })
         };
@@ -125,12 +123,12 @@ class HelperImpl implements Helper {
 
     generateDefaultFailureParams(tracerId: unknown, codeIdentifier?: string, source?: string | undefined) {
         const timestamp = Date.now();
-        
+
         return {
             success: false,
             distributedTraceId: tracerId,
             timestamp: timestamp,
-            requestType : Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
+            requestType: Constants.LOKI_LOGGER_LABELS.REQUEST_TYPE,
             ...(this.isNeitherNullNorUndefinedNorEmpty(codeIdentifier!) && { codeIdentifier }),
             ...(this.isNeitherNullNorUndefinedNorEmpty(source!) && { source })
         };
@@ -142,7 +140,7 @@ class HelperImpl implements Helper {
                 algorithms: Constants.JWT_CONFIG.ALGORITHM
             });
             return payload;
-        } 
+        }
         catch (error) {
             throw error;
         }
@@ -159,19 +157,23 @@ class HelperImpl implements Helper {
             address: address,
             organisationContact: organisationContact,
         };
-        
+
         const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}/verify/${token}`;
         let loggerDefaultParams = {};
+        let genericParamsToLog = {
+            url: url,
+            path: filePath,
+            user: user,
+            organisationData: organisationData,
+        };
+        let logPayload = {
+            labels,
+            genericParamsToLog,
+        };
 
         try {
             const template = fs.readFileSync(path.join(__dirname, filePath), encoding);
             const renderedHTML = ejs.render(template, { user, url, organisationData });
-            const paramsToLog = {
-                url: url,
-                path: filePath,
-                user: user,
-                organisationData: organisationData,
-            };
 
             await transporter.sendMail({
                 to: user.email,
@@ -180,22 +182,18 @@ class HelperImpl implements Helper {
             });
 
             loggerDefaultParams = this.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION);
-            logger.info({
-                labels,
-                ...loggerDefaultParams,
-                paramsToLog,
-            });
-        } catch (error) {
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+        }
+        catch (error) {
             loggerDefaultParams = this.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION);
-            logger.error({
-                labels,
-                ...loggerDefaultParams,
-                params,
-                error,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logErrorStack(logPayload, error);
+            logger.error({ ...logPayload });
 
             throw error;
         }
+
+        logger.info({ ...logPayload });
     }
 
     prepareUserRedisKeyValues(key: string, userInfo: RedisEmailKeySerialisation): Object {
@@ -230,6 +228,13 @@ class HelperImpl implements Helper {
         if (switchOffForDev) return;
 
         let loggerDefaultParams = {};
+        let logPayload = {
+            labels,
+            request: {
+                key: key,
+                value: value,
+            },
+        };
 
         try {
             await cacheDB.set(key, value, {
@@ -237,29 +242,43 @@ class HelperImpl implements Helper {
             });
 
             loggerDefaultParams = this.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.CACHE_DB, Constants.DB.SAVE_IN_REDIS);
-            logger.info({
-                labels,
-                ...loggerDefaultParams,
-                request: {
-                    key: key,
-                    value: value,
-                }
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
         }
         catch (error) {
             loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.CACHE_DB);
-            logger.error({
-                labels,
-                ...loggerDefaultParams,
-                request: {
-                    key: key,
-                    value: value,
-                },
-                error,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logErrorStack(logPayload, error);
+            logger.error({ ...logPayload });
 
             throw new RedisResponse(error);
         }
+
+        logger.info({ ...logPayload });
+    }
+
+    logErrorStack(logPayload: any, error: any, customMessage?: string) {
+        const cloneLogPayload = {
+            ...logPayload,
+            error: { ...(logPayload.error || {}) }
+        };
+
+        ['message', 'details', 'code', 'statusCode', 'stack', 'name', 'token', 'retryVerification', 'success', 'verified'].forEach((key) => {
+            if (this.isNeitherNullNorUndefinedNorEmpty(error[key])) {
+                cloneLogPayload.error[key] = error[key];
+            }
+        });
+        if (this.isNeitherNullNorUndefinedNorEmpty(customMessage)) cloneLogPayload.error['message'] = customMessage;
+
+        return cloneLogPayload;
+    }
+
+    logResponse(logPayload: any, response: any) {
+        const cloneLogPayload = {
+            ...logPayload,
+            response: { ...(logPayload.response || {}), ...response },
+        };
+
+        return cloneLogPayload;
     }
 }
 
