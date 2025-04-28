@@ -4,11 +4,15 @@ import { clients } from "../config/registery.js";
 import { Services } from "../config/services.js";
 import { EmailLoginInterface } from "../interface/email_login.js";
 import { EmailSignUpInterface } from "../interface/email_signup.js";
+import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
-import { grpcRequest } from "../utils/network.js";
+import { grpcRequest } from "../utils/grpc.js";
+import { EmailVerificationResponse, LoginResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
+import { networkHelper } from "../utils/network.js";
+import { frontendUrl } from "../config/config.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -22,14 +26,19 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
             [Constants.AUTH_PURPOSE.RETRY_EMAIL_VERIFICATION]: retryEmailVerification,
         },
     };
+    const verifyJwtTokenConfig = [retryEmailVerification];
 
     try {
         const handler = handlers?.[channel]?.[purpose];
 
-        if (helper.isNeitherNullNorUndefinedNorEmpty(handler))
+        if (helper.isNeitherNullNorUndefinedNorEmpty(handler)) {
+            if(verifyJwtTokenConfig.includes(handler)) return verifyJwtToken(req, res, () => handler(req, res))
+
             return await handler(req, res);
-        else
+        }
+        else {
             return helper.sendStatusErrorResponse(res, Constants.ERRORS.INTERNAL_SERVER_ERROR, Constants.STATUS_CODES.INTERNAL_SERVER_ERROR);
+        }
     }
     catch (error) {
         return helper.sendStatusErrorResponse(res, error.message, Constants.STATUS_CODES.INTERNAL_SERVER_ERROR);
@@ -43,25 +52,24 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         type: Constants.LOKI_LOGGER_LABELS.EMAIL,
     };
     const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.EMAIL_VERIFICATION}}`;
     let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        token: token,
+    };
 
     if (!token) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
-        logger.error({
-            labels,
-            ...loggerDefaultParams,
-            token,
-            error: Constants.JWT.MISSING,
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
+        logger.error({ ...logPayload });
 
         return helper.sendStatusErrorResponse(res, Constants.JWT.MISSING, Constants.STATUS_CODES.NOT_FOUND);
     }
 
-    let response = {    
-        success: false,
-        message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR, Constants.TYPE_SWITCH.STRING),
-        statusCode: Constants.STATUS_CODES.INTERNAL_SERVER_ERROR,
-    };
+    let response = new EmailVerificationResponse();
 
     try {
         response = await grpcRequest(
@@ -74,42 +82,45 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         );
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
-        logger.info({
-            labels,
-            ...loggerDefaultParams,
-            token: token,
-            response,
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+        logger.info({ ...logPayload });
+        
+        networkHelper.setCookie(res, token);
     }
     catch (error) {
-        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
-        logger.error({
-            labels,
-            ...loggerDefaultParams,
-            token,
-            error,
-        });
+        response.message = Constants.LOGIN_MESSAGE.VERIFICATION_FAILED;
 
-        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
+        logger.error({ ...logPayload });
     }
+
+    res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message });
 });
 
 const emailLogin = async (req, res) => {
+    if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        // redirect to Home
+        return;
+    }
+
     const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
     const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.LOGIN}`;
+    let response = new LoginResponse();
 
-    let response = {
-        message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR, Constants.TYPE_SWITCH.STRING),
-        statusCode: Constants.STATUS_CODES.INTERNAL_SERVER_ERROR,
-        retryVerification: false,
-        token: '',
-        name: '',
-    };
     const labels = {
         operation: Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST,
         type: Constants.LOKI_LOGGER_LABELS.EMAIL,
     };
     let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        emailLoginRequest, 
+    };
 
     try {
         response = await grpcRequest(
@@ -148,46 +159,49 @@ const emailLogin = async (req, res) => {
                     email: emailLoginRequest.userEmailLoginRequest.email
                 });
             }
+            else {
+                networkHelper.setCookie(res, response.token);
+            }
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
-        logger.info({
-            labels,
-            ...loggerDefaultParams,
-            emailLoginRequest,
-            response,
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
     }
     catch (error) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
-        logger.error({
-            labels,
-            ...loggerDefaultParams,
-            emailLoginRequest,
-            error,
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
 
         return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
     }
 
+    logger.info({ ...logPayload });
     return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 const emailSignUp = async (req, res) => {
+    if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        // redirect to Home
+        return;
+    }
+
     const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
     const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.SIGNUP}`;
+    let response = new SignUpResponse();
 
-    let response = {
-        message: helper.convertToType<string>(Constants.ERRORS.INTERNAL_SERVER_ERROR, Constants.TYPE_SWITCH.STRING),
-        statusCode: Constants.STATUS_CODES.INTERNAL_SERVER_ERROR,
-        token: '',
-        verified: false,
-    };
     const labels = {
         operation: Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST,
         type: Constants.LOKI_LOGGER_LABELS.EMAIL,
     }
     let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        emailSignUpRequest, 
+    };
 
     try {
         response = await grpcRequest(
@@ -229,36 +243,36 @@ const emailSignUp = async (req, res) => {
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
-        logger.info({
-            labels,
-            ...loggerDefaultParams,
-            emailSignUpRequest,
-            response,
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
     }
     catch (error) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
-        logger.error({
-            labels,
-            ...loggerDefaultParams,
-            emailSignUpRequest,
-            error
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
 
         return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
     }
 
+    logger.info({ ...logPayload });
     return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 const retryEmailVerification = async (req, res) => {
     const { token } = req[Constants.REQUEST_PAYLOAD.HEADERS];
     const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.RETRY_EMAIL_VERIFICATION}`;
     const labels = {
         operation: Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION,
         type: Constants.LOKI_LOGGER_LABELS.EMAIL,
     }
     let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        token: token,
+    };
 
     try {
         const payload = helper.decryptAuthToken(token);
@@ -281,24 +295,21 @@ const retryEmailVerification = async (req, res) => {
             });
 
             loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
-            logger.info({
-                labels,
-                ...loggerDefaultParams,
-                token,
-            });
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logResponse(logPayload, deSerialisedObject);
         }
     }
     catch (error) {
         loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
-        logger.error({
-            labels,
-            ...loggerDefaultParams,
-            token,
-            error
-        });
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
 
         return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
     }
+    
+    logger.info({ ...logPayload });
+    return helper.sendStatusSuccessResponse(res, Constants.STATUS_CODES.OK, Constants.LOGIN_MESSAGE.NOT_VERIFIED);
 };
 
 export {
