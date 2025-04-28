@@ -119,7 +119,7 @@ const emailLogin = async (req, res) => {
             context,
         );
 
-        if (response.message === Constants.LOGIN_MESSAGE.SUCCESS && response.retryVerification && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
+        if(response.message === Constants.LOGIN_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
             response.message = Constants.AUTH_RESPONSE.RETRY_VERIFICATION;
 
             const payload = helper.decryptAuthToken(response.token);
@@ -141,11 +141,13 @@ const emailLogin = async (req, res) => {
                 timeout: Constants.DB_TIMEOUTS.LONG_CACHE_DB_REDIS_TIMEOUT
             });
 
-            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
-                token: response.token,
-                name: response.name,
-                email: emailLoginRequest.userEmailLoginRequest.email
-            });
+            if(response.retryVerification) {
+                await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
+                    token: response.token,
+                    name: response.name,
+                    email: emailLoginRequest.userEmailLoginRequest.email
+                });
+            }
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
