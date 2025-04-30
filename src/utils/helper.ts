@@ -9,12 +9,18 @@ import { RedisResponse } from "./response.js";
 import { RedisEmailKeySerialisation } from "./interface.js";
 
 interface Helper {
-    isEitherNullOrUndefined(value: string): boolean;
+    isNotEmpty(value: string): boolean;
+    trimStringValue(value: string): string;
+    isValidNumeric(value: number): boolean;
+    isValidBoolean(value: boolean): boolean;
+    isEitherNullOrUndefined(value: string | null | undefined): boolean;
     isEitherNullOrUndefinedOrEmpty(value: string | null | undefined): boolean;
-    isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean;
-    isGenericNeitherNullNorUndefined(value: unknown): boolean;
+    isGenericEitherNullOrUndefined(value: boolean | number | string | null | undefined): boolean;
     isNeitherNullNorUndefined(value: string | null | undefined): boolean;
     isNeitherNullNorUndefinedNorEmpty(value: string | null | undefined): boolean;
+    isGenericNeitherNullNorUndefined(value: boolean | number | string | null | undefined): boolean;
+    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | string | null | undefined): boolean;
+    isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean;
     sendStatusSuccessResponse(res, statusCode: number, response);
     sendStatusErrorResponse(res, message: string, statusCode?: number | undefined | null);
     switchOffCaseSensitive(value: string): string;
@@ -34,12 +40,59 @@ interface Helper {
 }
 
 class HelperImpl implements Helper {
-    isEitherNullOrUndefined(value: string | undefined | null): boolean {
+    isNotEmpty(value: string): boolean {
+        return value === '' ? true : false;
+    }
+
+    trimStringValue(value: string): string {
+        value = value?.trimStart();
+        value = value?.trimEnd();
+        return value;
+    }
+
+    isValidNumeric(value: number | null | undefined): boolean {
+        return this.isGenericNeitherNullNorUndefined(value) && typeof value === 'number' ? true : false;
+    }
+
+    isValidBoolean(value: boolean | null | undefined): boolean {
+        return this.isGenericNeitherNullNorUndefined(value) && typeof value === 'boolean' ? true : false;
+    }
+ 
+    isEitherNullOrUndefined(value: string | null | undefined): boolean {
         return (value === null || value === undefined) ? true : false;
     }
 
-    isEitherNullOrUndefinedOrEmpty(value: string): boolean {
-        return (value === '' || this.isEitherNullOrUndefined(value)) ? true : false;
+    isEitherNullOrUndefinedOrEmpty(value: string | null | undefined): boolean {
+        if(this.isEitherNullOrUndefined(value)) return true;
+        return this.trimStringValue(value as string) === "" ? true : false;
+    }
+
+    isGenericEitherNullOrUndefined(value: boolean | string | number | null | undefined): boolean {
+        return (value === null || value === undefined) ? true : false;
+    }
+
+    isNeitherNullNorUndefined(value: string | null | undefined): boolean {
+        return (value !== null && value !== undefined) ? true : false;
+    }
+
+    isNeitherNullNorUndefinedNorEmpty(value: string | null | undefined): boolean {
+        if (this.isNeitherNullNorUndefined(value)) {
+            return this.trimStringValue(value as string) !== "" ? true : false;
+        }
+        return false;
+    }
+
+    isGenericNeitherNullNorUndefined(value: boolean | number | string | null | undefined): boolean {
+        return (value !== null && value !== undefined) ? true : false;
+    }
+
+    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | string | null | undefined): boolean {
+        if(this.isGenericNeitherNullNorUndefined(value)) {
+            if(typeof value === 'string') return this.isNotEmpty(value);
+            if(typeof value === 'number') return this.isValidNumeric(value) && this.isValidNumeric(value);
+            if(typeof value === 'boolean') return this.isValidBoolean(value) && this.isValidBoolean(value);
+        }
+        return false;
     }
 
     isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean {
@@ -49,18 +102,6 @@ class HelperImpl implements Helper {
         }
 
         return isValueEitherNullOrUndefinedOrEmpty;
-    }
-
-    isGenericNeitherNullNorUndefined(value: unknown): boolean {
-        return (value !== null && value !== undefined) ? true : false;
-    }
-
-    isNeitherNullNorUndefined(value: string | null | undefined): boolean {
-        return (value !== null && value !== undefined) ? true : false;
-    }
-
-    isNeitherNullNorUndefinedNorEmpty(value: string | null | undefined): boolean {
-        return (value !== '' && this.isNeitherNullNorUndefined(value)) ? true : false;
     }
 
     sendStatusSuccessResponse(res: any, statusCode: number, response) {
@@ -157,7 +198,6 @@ class HelperImpl implements Helper {
             address: address,
             organisationContact: organisationContact,
         };
-
         const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}/verify/${token}`;
         let loggerDefaultParams = {};
         let genericParamsToLog = {
