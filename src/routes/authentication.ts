@@ -47,6 +47,12 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
 
 router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
+    /* Change the title with logo and org */
+    if(!networkHelper.checkTokenValidity(token)) {
+        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: `${Constants.JWT.INVALID}`, isError: true });
+        return;
+    }
+
     const labels = {
         operation: Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION,
         type: Constants.LOKI_LOGGER_LABELS.EMAIL,

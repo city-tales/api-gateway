@@ -28,6 +28,24 @@
       animation: draw 0.5s ease-in-out 0s 1 normal forwards;
     }
 
+    .crossmark {
+      stroke: #e74c3c;
+      stroke-width: 10;
+      stroke-linecap: round;
+      fill: none;
+      width: 100px;
+      height: 100px;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: draw 0.5s ease-in-out 0s 1 normal forwards;
+    }
+
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
     .circle {
       stroke: #2ecc71;
       fill: none;
@@ -47,6 +65,25 @@
       animation: drawTick 0.8s ease-in-out forwards;
     }
 
+    .red-circle {
+      stroke: #e74c3c;
+      fill: none;
+      stroke-width: 5;
+      stroke-dasharray: 250;
+      stroke-dashoffset: 250;
+      animation: fillCircle 1s ease-in-out forwards;
+    }
+
+    .cross {
+      stroke: #e74c3c;
+      stroke-width: 6;
+      stroke-linecap: round;
+      fill: none;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawCross 0.6s ease-in-out forwards;
+    }
+
     @keyframes draw {
       100% {
         stroke-dashoffset: 0;
@@ -58,6 +95,12 @@
         stroke-dashoffset: 250;
       }
 
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes drawCross {
       100% {
         stroke-dashoffset: 0;
       }
@@ -101,14 +144,26 @@
 
 <body>
   <div class="container">
-    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-      <circle class="circle" cx="26" cy="26" r="25" />
-      <path class="tick" fill="none" d="M14 27l10.917 10.917L38 17" />
-    </svg>
-    <h1> "<%= messageToShow %>" </h1>
-    <% if (buttonToShow) { %>
-      <button onclick="login()">Login</button>
-      <% } %>
+
+    <% if (isError) { %>
+      <svg class="crossmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+        <circle class="red-circle" cx="26" cy="26" r="25" />
+        <line class="cross" x1="16" y1="16" x2="36" y2="36" />
+        <line class="cross" x1="36" y1="16" x2="16" y2="36" />
+      </svg>
+      <% } else { %>
+        <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle" cx="26" cy="26" r="25" />
+          <path class="tick" fill="none" d="M14 27l10.917 10.917L38 17" />
+        </svg>
+        <% } %>
+
+
+          </svg>
+          <h1> "<%= messageToShow %>" </h1>
+          <% if (buttonToShow) { %>
+            <button onclick="login()">Login</button>
+            <% } %>
 
   </div>
 
