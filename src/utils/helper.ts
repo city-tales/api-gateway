@@ -98,7 +98,8 @@ class HelperImpl implements Helper {
     isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean {
         let isValueEitherNullOrUndefinedOrEmpty: boolean = false;
         for (let index = 0; index < values.length; ++index) {
-            isValueEitherNullOrUndefinedOrEmpty &&= this.isEitherNullOrUndefinedOrEmpty(values[index]);
+            const value = values[index];
+            isValueEitherNullOrUndefinedOrEmpty &&= this.isEitherNullOrUndefinedOrEmpty(value);
         }
 
         return isValueEitherNullOrUndefinedOrEmpty;
@@ -303,7 +304,7 @@ class HelperImpl implements Helper {
         };
 
         ['message', 'details', 'code', 'statusCode', 'stack', 'name', 'token', 'retryVerification', 'success', 'verified'].forEach((key) => {
-            if (this.isNeitherNullNorUndefinedNorEmpty(error[key])) {
+            if (this.isGenericNeitherNullNorUndefinedNorInvalid(error[key])) {
                 cloneLogPayload.error[key] = error[key];
             }
         });

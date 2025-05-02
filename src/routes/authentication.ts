@@ -30,8 +30,9 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
 
     try {
         const handler = handlers?.[channel]?.[purpose];
+        const handlerName = handlers?.[channel]?.[purpose]?.['name'];
 
-        if (helper.isNeitherNullNorUndefinedNorEmpty(handler)) {
+        if (helper.isNeitherNullNorUndefinedNorEmpty(handlerName)) {
             if(verifyJwtTokenConfig.includes(handler)) return verifyJwtToken(req, res, () => handler(req, res))
 
             return await handler(req, res);
@@ -49,7 +50,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
     /* Change the title with logo and org */
     if(!networkHelper.checkTokenValidity(token)) {
-        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: `${Constants.JWT.INVALID}`, isError: true });
+        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
         return;
     }
 
@@ -103,7 +104,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         logger.error({ ...logPayload });
     }
 
-    res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message });
+    res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: false });
 });
 
 const emailLogin = async (req, res) => {
@@ -137,8 +138,6 @@ const emailLogin = async (req, res) => {
         );
 
         if(response.message === Constants.LOGIN_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
-            response.message = Constants.AUTH_RESPONSE.RETRY_VERIFICATION;
-
             const payload = helper.decryptAuthToken(response.token);
             const userInfoForRedisKey = {
                 email: emailLoginRequest.userEmailLoginRequest.email,
