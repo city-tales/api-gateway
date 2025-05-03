@@ -1,19 +1,27 @@
 import { helper } from "../utils/helper.js";
 import { Constants } from "../utils/constants.js";
 import { jwt } from "../config/imports.js";
-import { JWT_PUBLIC_KEY } from "../config/config.js";
+import { jwtPublicKey } from "../config/config.js";
 
 export const verifyJwtToken = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if(helper.isEitherNullOrUndefinedOrEmpty(token)) {
-        return helper.sendStatusErrorResponse(res, Constants.STATUS_CODES.UNAUTHORIZED, Constants.JWT.EMPTY);
+    const { token } = req[Constants.REQUEST_PAYLOAD.HEADERS];
+    const rawTokenInCookie = req.cookies.jwt_access_token;
+    const sanitisedToken = rawTokenInCookie?.startsWith('s:') ? rawTokenInCookie.slice(2) : rawTokenInCookie;
+
+    if(helper.isEitherNullOrUndefinedOrEmpty(token) && helper.isEitherNullOrUndefinedOrEmpty(rawTokenInCookie)) {
+        return helper.sendStatusErrorResponse(res, Constants.JWT.EMPTY, Constants.STATUS_CODES.UNAUTHORIZED);
     }
 
     try {
-        const isValidToken = jwt.verify(token, JWT_PUBLIC_KEY);
+        let isValidToken;
+        if(sanitisedToken) isValidToken = jwt.verify(sanitisedToken, jwtPublicKey);
+        else isValidToken = jwt.verify(token, jwtPublicKey);
+
         next();
     }
     catch(error) {
-        return helper.sendStatusErrorResponse(res, Constants.STATUS_CODES.NOT_FOUND, Constants.JWT.INVALID);
+        return helper.sendStatusErrorResponse(res, (
+            helper.isNeitherNullNorUndefinedNorEmpty(error.message) ? error.message : Constants.JWT.INVALID
+        ), Constants.STATUS_CODES.NOT_FOUND);
     }
 }

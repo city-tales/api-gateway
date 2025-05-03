@@ -1,5 +1,5 @@
 import { grpc, protoLoader, AUTH_PROTO_PATH } from "./imports.js";
-import { GRPC_BASE_URL } from "./config.js";
+import { grpcBaseUrl } from "./config.js";
 import { Services } from "./services.js";
 
 const options = {
@@ -25,7 +25,7 @@ const clients = {};
 
 for (const [serviceName, ServiceConstructor] of Object.entries(rpcRequestServiceMap)) {
     clients[serviceName] = new ServiceConstructor(
-        GRPC_BASE_URL,
+        grpcBaseUrl,
         grpc.credentials.createInsecure()
     );
 }
