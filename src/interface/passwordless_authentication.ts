@@ -1,6 +1,6 @@
 import { z } from "../config/imports.js";
 
-export const EmailLoginInterface = z.object({
+export const PasswordlessAuthenticationInterface = z.object({
     userDeviceInformation: z.object({
         browserInfo: z.string(),
         deviceId: z.string(),
@@ -10,8 +10,8 @@ export const EmailLoginInterface = z.object({
         loginTime: z.string(),
         platform: z.string(),
     }),
-    userEmailLoginRequest: z.object({
+    userPasswordlessAuthenticationRequest: z.object({
+        name: z.string(),
         email: z.string().email(),
-        password: z.string(),
     }),
 });

@@ -53,6 +53,7 @@ enum LOKI_LOGGER_LABELS {
     SIGNUP_REQUEST = 'signupRequest',
     LOGIN_REQUEST = 'loginRequest',
     EMAIL_VERIFICATION = 'emailVerification',
+    MAGIC_LINK = 'magicLink',
 
     EMAIL = 'email',
     GOOGLE = 'google',
@@ -77,8 +78,9 @@ enum ROUTES {
     AUTHENTICATION = '/api/authentication',
     SIGNUP = '/email/register',
     LOGIN = '/email/login',
-    RETRY_EMAIL_VERIFICATION = '/email/retryVerification',
+    RETRY_EMAIL_VERIFICATION = '/email/retryverification',
     EMAIL_VERIFICATION = '/verify/:id',
+    MAGIC_LINK = '/passwordless/magiclink'
 }
 
 export const URL = {
@@ -94,7 +96,9 @@ enum AUTH_CHANNELS {
 enum AUTH_PURPOSE {
     SIGNUP = 'register',
     LOGIN = 'login',
-    RETRY_EMAIL_VERIFICATION = 'retryEmailVerification',
+    RETRY_EMAIL_VERIFICATION = 'retryemailverification',
+    MAGIC_LINK = 'magiclink',
+    OTP = 'otp',
 };
 
 enum AUTH_RESPONSE {
@@ -177,6 +181,12 @@ enum LOGIN_MESSAGE {
     VERIFICATION_FAILED = 'Retry Verification',
     SUCCESS = 'Logging In',
     FAILED = 'Server Error',
+};
+
+enum PASSWORDLESS_AUTHENTICATION_MESSAGE {
+    EMPTY_TOKEN = '',
+    SUCCESS = 'Logging In',
+    FAILED = 'Authentication Failed, Retry',
 };
 
 enum REDIS_MESSAGE {
@@ -363,6 +373,7 @@ export class Constants {
 
     static readonly SIGNUP_MESSAGE = SIGNUP_MESSAGE;
     static readonly LOGIN_MESSAGE = LOGIN_MESSAGE;
+    static readonly PASSWORDLESS_AUTHENTICATION_MESSAGE = PASSWORDLESS_AUTHENTICATION_MESSAGE;
     static readonly REDIS_MESSAGE = REDIS_MESSAGE;
     static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
     static readonly EJS_PATHS = EJS_PATHS;
