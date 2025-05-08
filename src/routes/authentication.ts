@@ -8,11 +8,12 @@ import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
 import { grpcRequest } from "../utils/grpc.js";
-import { EmailVerificationResponse, LoginResponse, SignUpResponse } from "../utils/response.js";
+import { EmailVerificationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
 import { networkHelper } from "../utils/network.js";
 import { frontendUrl } from "../config/config.js";
+import { PasswordlessAuthenticationInterface } from "../interface/passwordless_authentication.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -24,6 +25,9 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
             [Constants.AUTH_PURPOSE.LOGIN]: emailLogin,
             [Constants.AUTH_PURPOSE.SIGNUP]: emailSignUp,
             [Constants.AUTH_PURPOSE.RETRY_EMAIL_VERIFICATION]: retryEmailVerification,
+        },
+        [Constants.AUTH_CHANNELS.PASSWORDLESS]: {
+            [Constants.AUTH_PURPOSE.MAGIC_LINK]: magicLinkPasswordless,
         },
     };
     const verifyJwtTokenConfig = [retryEmailVerification];
@@ -239,6 +243,7 @@ const emailSignUp = async (req, res) => {
             }
 
             if(!response.verified) {
+                /* Customise data for magic link */
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
                     token: response.token,
                     name: emailSignUpRequest.userEmailSignUpRequest.name,
@@ -315,6 +320,55 @@ const retryEmailVerification = async (req, res) => {
     
     logger.info({ ...logPayload });
     return helper.sendStatusSuccessResponse(res, Constants.STATUS_CODES.OK, Constants.LOGIN_MESSAGE.NOT_VERIFIED);
+};
+
+const magicLinkPasswordless = async (req, res) => {
+    const passwordlessAuthenticationRequest = PasswordlessAuthenticationInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.MAGIC_LINK}`;
+    let response = new PasswordlessAuthenticationResponse();
+
+    const labels = {
+        operation: Constants.LOKI_LOGGER_LABELS.PASSWORDLESS,
+        type: Constants.LOKI_LOGGER_LABELS.MAGIC_LINK,
+    }
+    let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        passwordlessAuthenticationRequest, 
+    };
+
+    try {   
+        response = await grpcRequest(
+            clients[Services.RpcRequest.AuthRpcRequest],
+            Services.AuthRpcServices.PasswordlessAuthentication,
+            passwordlessAuthenticationRequest,
+            context,
+        );
+
+        if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
+            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
+                token: response.token,
+                email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email
+            });
+        }
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.MAGIC_LINK);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.MAGIC_LINK);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+    }
+
+    logger.info({ ...logPayload });
+    return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 export {
