@@ -347,7 +347,7 @@ const magicLinkPasswordless = async (req, res) => {
             context,
         );
 
-        if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS) {
+        if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
             await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
                 token: response.token,
                 email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email
