@@ -11,7 +11,6 @@ export const PasswordlessAuthenticationInterface = z.object({
         platform: z.string(),
     }),
     userPasswordlessAuthenticationRequest: z.object({
-        name: z.string(),
         email: z.string().email(),
     }),
 });
