@@ -2,9 +2,10 @@ import { helper } from "./helper.js";
 import { _, Job, Worker } from "../config/imports.js";
 import { logger } from "../config/loki.js";
 import { bullMQConnectionObject } from "../config/redis.js";
-import { retryEmailVerification, saveInRedisQueueEmployee } from "./queue.js";
+import { passwordlessAuthenticationEmployee, retryEmailVerification, saveInRedisQueueEmployee } from "./queue.js";
 import { AddJobToQueueLabelInterface, RegisterWorkerLabelInterface } from "../interface/logger.js";
 import { Constants } from "./constants.js";
+import { frontendUrl, serverUrl } from "../config/config.js";
 
 interface QueueInterface {
     addJobToQueue(tracerId: string, labels, queueWorker: string, params: {}, maxAttempts?: number, lockDuration?: number, backOffDelay?: number): Promise<void>;
@@ -13,6 +14,7 @@ interface QueueInterface {
 const queueMap = {
     [Constants.DB.SAVE_IN_REDIS]: saveInRedisQueueEmployee,
     [Constants.QUEUE_DB.EMAIL_VERIFICATION]: retryEmailVerification,
+    [Constants.QUEUE_DB.PASSWORDLESS]: passwordlessAuthenticationEmployee,
 };
 
 class QueueImpl implements QueueInterface {
@@ -113,18 +115,54 @@ class QueueImpl implements QueueInterface {
                 params,
                 distributedTraceId: tracerId,
             };
+            const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}/verify/${token}`;
 
             try {
-                await helper.sendEmailForVerification(tracerId, {
+                await helper.prepareToSendEmail(tracerId, {
                     token: token,
                     user: {
                         name: name,
                         email: email
                     }
-                }, registerWorkerLabel);
+                }, registerWorkerLabel, Constants.NODE_MAILER_MESSAGE.VERIFY_ACCOUNT_SUBJECT, Constants.EJS_PATHS.RETRY_EMAIL_VERIFICATION, Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION_CSS, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION, url);
             }
             catch (error) {
                 loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.QUEUE_DB.EMAIL_VERIFICATION);
+                logPayload = { ...logPayload, ...loggerDefaultParams };
+                logPayload = helper.logErrorStack(logPayload, error);
+                logger.error({ ...logPayload });
+
+                throw error;
+            }
+        });
+
+        this.registerWorker(Constants.QUEUE_DB.PASSWORDLESS, async (job: Job) => {
+            const { params, tracerId, queueLabel } = job.data;
+            const { token, email } = params;
+
+            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+                operation: queueLabel.operation,
+                subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
+                type: queueLabel.type
+            };
+            let loggerDefaultParams = {};
+            let logPayload = {
+                registerWorkerLabel,
+                params,
+                distributedTraceId: tracerId,
+            };
+            const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}${Constants.ROUTES.MAGIC_LINK}/${token}`;
+
+            try {
+                await helper.prepareToSendEmail(tracerId, {
+                    token: token,
+                    user: {
+                        email: email
+                    }
+                }, registerWorkerLabel, Constants.NODE_MAILER_MESSAGE.MAGIC_LINK_SUBJECT, Constants.EJS_PATHS.MAGIC_LINK, Constants.EJS_PATHS.MAGIC_LINK_CSS, Constants.NODE_MAILER_MESSAGE.MAGIC_LINK_SUBJECT, url);
+            }
+            catch (error) {
+                loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.QUEUE_DB.PASSWORDLESS);
                 logPayload = { ...logPayload, ...loggerDefaultParams };
                 logPayload = helper.logErrorStack(logPayload, error);
                 logger.error({ ...logPayload });
