@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
 import ejs from 'ejs';
+import juice from "juice";
 
 const server = express();
 const AUTH_PROTO_PATH = "../shared-proto/authentication/rpc_request.proto";
@@ -49,4 +50,5 @@ export {
     path,
     fileURLToPath,
     ejs,
+    juice,
 };

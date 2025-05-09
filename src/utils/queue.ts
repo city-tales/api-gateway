@@ -9,3 +9,7 @@ export const saveInRedisQueueEmployee = new Queue(Constants.DB.SAVE_IN_REDIS, {
 export const retryEmailVerification = new Queue(Constants.QUEUE_DB.EMAIL_VERIFICATION, {
     connection: bullMQConnectionObject.connection
 });
+
+export const passwordlessAuthenticationEmployee = new Queue(Constants.QUEUE_DB.PASSWORDLESS, {
+    connection: bullMQConnectionObject.connection
+});

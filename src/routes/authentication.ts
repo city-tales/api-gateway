@@ -81,6 +81,8 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     }
 
     let response = new EmailVerificationResponse();
+    const rawSource = helper.decryptAuthToken(token)?.source;
+    const source = helper.isNeitherNullNorUndefinedNorEmpty(rawSource) ? rawSource : Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION;
 
     try {
         response = await grpcRequest(
@@ -92,7 +94,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
             context,
         );
 
-        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
         logPayload = { ...logPayload, ...loggerDefaultParams };
         logPayload = helper.logResponse(logPayload, response);
         logger.info({ ...logPayload });
@@ -102,7 +104,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     catch (error) {
         response.message = Constants.LOGIN_MESSAGE.VERIFICATION_FAILED;
 
-        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
         logPayload = { ...logPayload, ...loggerDefaultParams };
         logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
         logger.error({ ...logPayload });
@@ -348,9 +350,9 @@ const magicLinkPasswordless = async (req, res) => {
         );
 
         if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
-            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
+            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.PASSWORDLESS, {
                 token: response.token,
-                email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email
+                email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email,
             });
         }
 

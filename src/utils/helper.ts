@@ -1,5 +1,5 @@
 import { address, jwtPublicKey, organisation, organisationContact, serverUrl, year } from "../config/config.js";
-import { ejs, fs, jwt, path, uuidv4 } from "../config/imports.js";
+import { ejs, fs, juice, jwt, path, uuidv4 } from "../config/imports.js";
 import { logger } from "../config/loki.js";
 import { transporter } from "../config/nodemailer.js";
 import { Constants } from "./constants.js";
@@ -30,7 +30,8 @@ interface Helper {
     generateDefaultSuccessParams(tracerId: string, codeIdentifier?: string, source?: string | undefined);
     generateDefaultFailureParams(tracerId: string, codeIdentifier?: string, source?: string | undefined);
     decryptAuthToken(token: string): Object;
-    sendEmailForVerification(tracerId: string, params, labels);
+    sendEmail(url: string, filePath: string, subject: string, tracerId: string, renderedHTML, user, labels, source?: string);
+    prepareToSendEmail(tracerId: string, params, labels, subject: string, filePath: string, cssPath: string, source: string, url: string);
     prepareUserRedisKeyValues(key: string, userInfo: RedisEmailKeySerialisation): Object;
     serialiseRedisKeyValues(keyValuePairs: Object): string;
     parseRedisValueToObject(value: string);
@@ -188,18 +189,18 @@ class HelperImpl implements Helper {
         }
     }
 
-    async sendEmailForVerification(tracerId: string, params, labels) {
-        const { token, user } = params;
-        const subject = Constants.NODE_MAILER_MESSAGE.SUBJECT;
-        const encoding = Constants.NODE_MAILER_MESSAGE.ENCODING;
-        const filePath = Constants.EJS_PATHS.RETRY_EMAIL_VERIFICATION;
-        const organisationData = {
+    getOrganisationData() {
+        return {
             organisation: organisation,
             year: year,
             address: address,
             organisationContact: organisationContact,
         };
-        const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}/verify/${token}`;
+    }
+
+    async sendEmail(url: string, filePath: string, subject: string, tracerId: string, renderedHTML, user, labels, source?: string) {
+        const organisationData = this.getOrganisationData();
+
         let loggerDefaultParams = {};
         let genericParamsToLog = {
             url: url,
@@ -213,20 +214,17 @@ class HelperImpl implements Helper {
         };
 
         try {
-            const template = fs.readFileSync(path.join(__dirname, filePath), encoding);
-            const renderedHTML = ejs.render(template, { user, url, organisationData });
-
             await transporter.sendMail({
                 to: user.email,
                 subject: subject,
                 html: renderedHTML,
             });
 
-            loggerDefaultParams = this.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION);
+            loggerDefaultParams = this.generateDefaultSuccessParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, source);
             logPayload = { ...logPayload, ...loggerDefaultParams };
         }
         catch (error) {
-            loggerDefaultParams = this.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION);
+            loggerDefaultParams = this.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, source);
             logPayload = { ...logPayload, ...loggerDefaultParams };
             logPayload = helper.logErrorStack(logPayload, error);
             logger.error({ ...logPayload });
@@ -235,6 +233,40 @@ class HelperImpl implements Helper {
         }
 
         logger.info({ ...logPayload });
+    }
+
+    async prepareToSendEmail(tracerId: string, params, labels, subject: string, filePath: string, cssPath: string, source: string, url: string) {
+        const { user } = params;
+        const organisationData = this.getOrganisationData();
+
+        let loggerDefaultParams = {};
+        let genericParamsToLog = {
+            url: url,
+            path: filePath,
+            user: user,
+            organisationData: organisationData,
+        };
+        let logPayload = {
+            labels,
+            genericParamsToLog,
+        };
+
+        const template = fs.readFileSync(path.join(__dirname, filePath), Constants.NODE_MAILER_MESSAGE.ENCODING);
+        const cssTemplate = fs.readFileSync(path.join(__dirname, cssPath), Constants.NODE_MAILER_MESSAGE.ENCODING);
+        const rawHTML = ejs.render(template, { user, url, organisationData, inlineCss: cssTemplate });
+        const renderedHTML = juice.inlineContent(rawHTML, cssTemplate);
+
+        try {
+            await this.sendEmail(url, filePath, subject, tracerId, renderedHTML, user, labels, source);
+        }   
+        catch (error) {
+            loggerDefaultParams = this.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, source);
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logErrorStack(logPayload, error);
+            logger.error({ ...logPayload });
+
+            throw error;
+        }
     }
 
     prepareUserRedisKeyValues(key: string, userInfo: RedisEmailKeySerialisation): Object {

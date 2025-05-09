@@ -23,6 +23,7 @@ enum QUEUE_DB {
     LOCK_DURATION = 30000,
     CONCURRENCY = 5,
     EMAIL_VERIFICATION = 'emailVerification',
+    PASSWORDLESS = 'passwordless',
 };
 
 enum DB_TIMEOUTS {
@@ -31,6 +32,8 @@ enum DB_TIMEOUTS {
     LOCK_TIMEOUT = 10000,
     IDLE_TIMEOUT = 10000,
     CACHE_DB_REDIS_TIMEOUT = 600,
+    VERY_SHORT_CACHE_DB_REDIS_TIMEOUT = 300,
+    SHORT_CACHE_DB_REDIS_TIMEOUT = 3600,
     LONG_CACHE_DB_REDIS_TIMEOUT = 86400,
 };
 
@@ -80,7 +83,8 @@ enum ROUTES {
     LOGIN = '/email/login',
     RETRY_EMAIL_VERIFICATION = '/email/retryverification',
     EMAIL_VERIFICATION = '/verify/:id',
-    MAGIC_LINK = '/passwordless/magiclink'
+    MAGIC_LINK = '/passwordless/magiclink',
+    PASSWORDLESS = '/:id',
 }
 
 export const URL = {
@@ -196,13 +200,18 @@ enum REDIS_MESSAGE {
 
 enum NODE_MAILER_MESSAGE {
     SEND_EMAIL_FOR_VERIFICATION = 'sendEmailForVerification',
-    SUBJECT = 'Verify Account',
+    VERIFY_ACCOUNT_SUBJECT = 'Verify Account',
+    MAGIC_LINK_SUBJECT = 'Magic Link',
     ENCODING = 'utf8',
 };
 
 enum EJS_PATHS {
     RETRY_EMAIL_VERIFICATION = './views/email_verify.ejs',
+    RETRY_EMAIL_VERIFICATION_CSS = './views/email_verify.css',
+    MAGIC_LINK = './views/magic_link.ejs',
+    MAGIC_LINK_CSS = './views/magic_link.css',
     REDIRECT_EMAIL_VERIFICATION = './redirect_email_verification.ejs',
+    REDIRECT_EMAIL_VERIFICATION_CSS = './redirect_email_verification.css',
 };
 
 enum STATUS_CODES {
