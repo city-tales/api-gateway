@@ -113,6 +113,18 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: false });
 });
 
+router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
+    const token = req.params.id;
+
+    if(!networkHelper.checkTokenValidity(token)) {
+        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
+        return;
+    }
+
+    networkHelper.setCookie(res, token);
+    res.redirect(frontendUrl);
+});
+
 const emailLogin = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
         // redirect to Home
@@ -194,7 +206,7 @@ const emailLogin = async (req, res) => {
 
 const emailSignUp = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        // redirect to Home
+        res.redirect(frontendUrl);
         return;
     }
 
