@@ -8,11 +8,12 @@ import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
 import { grpcRequest } from "../utils/grpc.js";
-import { EmailVerificationResponse, LoginResponse, SignUpResponse } from "../utils/response.js";
+import { EmailVerificationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
 import { networkHelper } from "../utils/network.js";
 import { frontendUrl } from "../config/config.js";
+import { PasswordlessAuthenticationInterface } from "../interface/passwordless_authentication.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -24,6 +25,9 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
             [Constants.AUTH_PURPOSE.LOGIN]: emailLogin,
             [Constants.AUTH_PURPOSE.SIGNUP]: emailSignUp,
             [Constants.AUTH_PURPOSE.RETRY_EMAIL_VERIFICATION]: retryEmailVerification,
+        },
+        [Constants.AUTH_CHANNELS.PASSWORDLESS]: {
+            [Constants.AUTH_PURPOSE.MAGIC_LINK]: magicLinkPasswordless,
         },
     };
     const verifyJwtTokenConfig = [retryEmailVerification];
@@ -77,6 +81,8 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     }
 
     let response = new EmailVerificationResponse();
+    const rawSource = helper.decryptAuthToken(token)?.source;
+    const source = helper.isNeitherNullNorUndefinedNorEmpty(rawSource) ? rawSource : Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION;
 
     try {
         response = await grpcRequest(
@@ -88,7 +94,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
             context,
         );
 
-        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
         logPayload = { ...logPayload, ...loggerDefaultParams };
         logPayload = helper.logResponse(logPayload, response);
         logger.info({ ...logPayload });
@@ -98,13 +104,25 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     catch (error) {
         response.message = Constants.LOGIN_MESSAGE.VERIFICATION_FAILED;
 
-        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION);
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
         logPayload = { ...logPayload, ...loggerDefaultParams };
         logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
         logger.error({ ...logPayload });
     }
 
     res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: false });
+});
+
+router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
+    const token = req.params.id;
+
+    if(!networkHelper.checkTokenValidity(token)) {
+        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
+        return;
+    }
+
+    networkHelper.setCookie(res, token);
+    res.redirect(frontendUrl);
 });
 
 const emailLogin = async (req, res) => {
@@ -188,7 +206,7 @@ const emailLogin = async (req, res) => {
 
 const emailSignUp = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        // redirect to Home
+        res.redirect(frontendUrl);
         return;
     }
 
@@ -239,6 +257,7 @@ const emailSignUp = async (req, res) => {
             }
 
             if(!response.verified) {
+                /* Customise data for magic link */
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
                     token: response.token,
                     name: emailSignUpRequest.userEmailSignUpRequest.name,
@@ -315,6 +334,55 @@ const retryEmailVerification = async (req, res) => {
     
     logger.info({ ...logPayload });
     return helper.sendStatusSuccessResponse(res, Constants.STATUS_CODES.OK, Constants.LOGIN_MESSAGE.NOT_VERIFIED);
+};
+
+const magicLinkPasswordless = async (req, res) => {
+    const passwordlessAuthenticationRequest = PasswordlessAuthenticationInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.MAGIC_LINK}`;
+    let response = new PasswordlessAuthenticationResponse();
+
+    const labels = {
+        operation: Constants.LOKI_LOGGER_LABELS.PASSWORDLESS,
+        type: Constants.LOKI_LOGGER_LABELS.MAGIC_LINK,
+    }
+    let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        passwordlessAuthenticationRequest, 
+    };
+
+    try {   
+        response = await grpcRequest(
+            clients[Services.RpcRequest.AuthRpcRequest],
+            Services.AuthRpcServices.PasswordlessAuthentication,
+            passwordlessAuthenticationRequest,
+            context,
+        );
+
+        if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
+            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.PASSWORDLESS, {
+                token: response.token,
+                email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email,
+            });
+        }
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.MAGIC_LINK);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.MAGIC_LINK);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+    }
+
+    logger.info({ ...logPayload });
+    return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 export {

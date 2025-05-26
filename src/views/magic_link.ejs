@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magic Link</title>
+</head>
+
+<body>
+    <span class="preheader"></span>
+    <table align="center" border="0" cellspacing="0" cellpadding="0" class="email-table">
+        <tbody>
+            <tr>
+                <td class="sectionlike imageless_section"></td>
+            </tr>
+            <tr>
+                <td class="section">
+                    <table border="0" cellspacing="0" cellpadding="0" class="section_content">
+                        <tbody>
+                            <tr>
+                                <td class="section_content_padded">
+                                    <h1>Hi</h1>
+                                    <p class="near_title last">
+                                        We received a request to log in to <%= organisationData.organisation %> with this email address: <%= user.email %>.
+                                    </p>
+                                    <a href="<%= url %>" class="button" target="_blank"> Login with Magic Link </a>
+                                    <small>Your email address stays private.</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td class="section">
+                    <table border="0" cellspacing="0" cellpadding="0" class="section_content section_zag">
+                        <tbody>
+                            <tr>
+                                <td class="signature">
+                                    <p class="marginless">
+                                        Enjoy reading, <br />
+                                        The <%= organisationData.organisation %> Team
+                                    </p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td class="section dummy_row"></td>
+            </tr>
+            <tr>
+                <td>
+                    <table border="0" cellspacing="0" cellpadding="0" class="section_content">
+                        <tbody>
+                            <!-- Legal footer -->
+                            <tr>
+                                <td>
+                                    <p class="footer_legal">
+                                        If you did not enter this email address to sign up for
+                                        <%= organisationData.organisation %> service, disregard this
+                                        message.<br /><br />
+                                        © <%= organisationData.year %>
+                                            <%= organisationData.organisation %>!, <%= organisationData.address %>
+                                            <%= organisationData.organisationContact %>
+                                            <br /><br />
+                                            This is a mandatory service email from <%= organisationData.organisation %>.
+                                    </p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>
