@@ -1,13 +1,15 @@
+import { StringOrNull, StringOrNullOrUndefined } from "./custom_types.js";
+
 export interface RedisEmailKeySerialisation {
-    email: string | null | undefined,
+    email: StringOrNullOrUndefined,
 };
 
 export interface DeviceInterface {
-    deviceType?: string,
-    browserInfo?: string,
-    ipAddress?: string,
-    deviceId?: string,
-    platform?: string,
-    deviceName?: string,
-    loginTime?: Date | string,
+    deviceType?: StringOrNull,
+    browserInfo?: StringOrNull,
+    ipAddress?: StringOrNull,
+    deviceId?: StringOrNull,
+    platform?: StringOrNull,
+    deviceName?: StringOrNull,
+    loginTime?: Date | StringOrNull,
 };
