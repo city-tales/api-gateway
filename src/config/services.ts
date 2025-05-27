@@ -2,7 +2,7 @@ enum AuthRpcServices {
     EmailSignUp = 'EmailSignUp',
     EmailLogin = 'EmailLogin',
     EmailVerification = 'EmailVerification',
-    GoogleAuth = 'GoogleAuth',
+    GoogleAuthentication = 'GoogleAuthentication',
     PasswordlessAuthentication = 'PasswordlessAuthentication',
 };
 

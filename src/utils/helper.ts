@@ -107,6 +107,9 @@ class HelperImpl implements Helper {
     }
 
     sendStatusSuccessResponse(res: any, statusCode: number, response) {
+        if (response && Object.prototype.hasOwnProperty.call(response, "token")) {
+            delete response.token;
+        }
         return res.status(statusCode).json(response);
     }
 

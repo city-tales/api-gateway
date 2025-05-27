@@ -10,7 +10,8 @@ server.use(cookieParser());
 
 server.use(
     cors({
-        origin: "*",
+        origin: "http://127.0.0.1:5500",
+        credentials: true,
         methods: [Constants.REQUEST_METHODS.POST, Constants.REQUEST_METHODS.GET, Constants.REQUEST_METHODS.PUT, 
             Constants.REQUEST_METHODS.PATCH, Constants.REQUEST_METHODS.HEAD, Constants.REQUEST_METHODS.OPTIONS ],
         allowedHeaders: [Constants.REQUEST_HEADERS.CONTENT_TYPE, Constants.REQUEST_HEADERS.AUTHORIZATION ],

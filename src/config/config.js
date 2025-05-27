@@ -26,6 +26,10 @@ const queueDBRedisPassword = process.env.QUEUE_DB_REDIS_PASSWORD;
 const queueDBRedisHost = process.env.QUEUE_DB_REDIS_HOST;
 const queueDBRedisPort = parseInt(process.env.QUEUE_DB_REDIS_PORT);
 const queueDBRedisUrl = process.env.QUEUE_DB_REDIS_URL;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleRedirectUrl = process.env.GOOGLE_REDIRECT_URL;
+const googleTokenApi = process.env.GOOGLE_TOKEN_API;
 
 export {
     organisation,
@@ -54,4 +58,8 @@ export {
     queueDBRedisHost,
     queueDBRedisPort,
     queueDBRedisUrl,
+    googleClientId,
+    googleClientSecret,
+    googleRedirectUrl,
+    googleTokenApi,
 };
