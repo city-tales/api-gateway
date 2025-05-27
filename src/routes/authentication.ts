@@ -57,8 +57,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
     /* Change the title with logo and org */
     if(!networkHelper.checkTokenValidity(token)) {
-        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
-        return;
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
     }
 
     const labels = {
@@ -80,7 +79,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
         logger.error({ ...logPayload });
 
-        return helper.sendStatusErrorResponse(res, Constants.JWT.MISSING, Constants.STATUS_CODES.NOT_FOUND);
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.MISSING, isError: true });
     }
 
     let response = new EmailVerificationResponse();
@@ -120,12 +119,11 @@ router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
     const token = req.params.id;
 
     if(!networkHelper.checkTokenValidity(token)) {
-        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
-        return;
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
     }
 
     networkHelper.setCookie(res, token);
-    res.redirect(frontendUrl);
+    return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
 });
 
 router.get(`${Constants.ROUTES.GOOGLE_INITIATION}`, async (req, res) => {
@@ -211,8 +209,8 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
 
 const emailLogin = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        // redirect to Home
-        return;
+        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
     const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
@@ -290,8 +288,8 @@ const emailLogin = async (req, res) => {
 
 const emailSignUp = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        res.redirect(frontendUrl);
-        return;
+        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
     const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
@@ -347,6 +345,9 @@ const emailSignUp = async (req, res) => {
                     name: emailSignUpRequest.userEmailSignUpRequest.name,
                     email: emailSignUpRequest.userEmailSignUpRequest.email
                 });
+            }
+            else {
+                networkHelper.setCookie(res, response.token);
             }
         }
 
