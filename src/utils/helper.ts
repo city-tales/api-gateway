@@ -7,28 +7,29 @@ import { __dirname } from "../config/server.js";
 import { cacheDB } from "../config/redis.js";
 import { RedisResponse } from "./response.js";
 import { RedisEmailKeySerialisation } from "./interface.js";
+import { BooleanOrNullOrUndefined, NumberOrNull, NumberOrNullOrUndefined, StringOrNullOrUndefined, StringOrUndefined } from "./custom_types.js";
 
 interface Helper {
     isNotEmpty(value: string): boolean;
     trimStringValue(value: string): string;
     isValidNumeric(value: number): boolean;
     isValidBoolean(value: boolean): boolean;
-    isEitherNullOrUndefined(value: string | null | undefined): boolean;
-    isEitherNullOrUndefinedOrEmpty(value: string | null | undefined): boolean;
-    isGenericEitherNullOrUndefined(value: boolean | number | string | null | undefined): boolean;
-    isNeitherNullNorUndefined(value: string | null | undefined): boolean;
-    isNeitherNullNorUndefinedNorEmpty(value: string | null | undefined): boolean;
-    isGenericNeitherNullNorUndefined(value: boolean | number | string | null | undefined): boolean;
-    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | string | null | undefined): boolean;
+    isEitherNullOrUndefined(value: StringOrNullOrUndefined): boolean;
+    isEitherNullOrUndefinedOrEmpty(value: StringOrNullOrUndefined): boolean;
+    isGenericEitherNullOrUndefined(value: boolean | number | StringOrNullOrUndefined): boolean;
+    isNeitherNullNorUndefined(value: StringOrNullOrUndefined): boolean;
+    isNeitherNullNorUndefinedNorEmpty(value: StringOrNullOrUndefined): boolean;
+    isGenericNeitherNullNorUndefined(value: boolean | number | StringOrNullOrUndefined): boolean;
+    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | StringOrNullOrUndefined): boolean;
     isArrayEitherNullOrUndefinedOrEmpty(values: any[]): boolean;
     sendStatusSuccessResponse(res, statusCode: number, response);
-    sendStatusErrorResponse(res, message: string, statusCode?: number | undefined | null);
+    sendStatusErrorResponse(res, message: string, statusCode?: NumberOrNullOrUndefined);
     switchOffCaseSensitive(value: string): string;
     convertToClassType<T>(unknownValue: unknown, type: unknown): T;
     convertToType<T>(unknownValue: unknown, type: 'boolean' | 'number' | 'string' | 'object' | 'Object' | 'interface'): T;
     generateContext();
-    generateDefaultSuccessParams(tracerId: string, codeIdentifier?: string, source?: string | undefined);
-    generateDefaultFailureParams(tracerId: string, codeIdentifier?: string, source?: string | undefined);
+    generateDefaultSuccessParams(tracerId: string, codeIdentifier?: string, source?: StringOrUndefined);
+    generateDefaultFailureParams(tracerId: string, codeIdentifier?: string, source?: StringOrUndefined);
     decryptAuthToken(token: string): Object;
     sendEmail(url: string, filePath: string, subject: string, tracerId: string, renderedHTML, user, labels, source?: string);
     prepareToSendEmail(tracerId: string, params, labels, subject: string, filePath: string, cssPath: string, source: string, url: string);
@@ -51,43 +52,43 @@ class HelperImpl implements Helper {
         return value;
     }
 
-    isValidNumeric(value: number | null | undefined): boolean {
+    isValidNumeric(value: NumberOrNullOrUndefined): boolean {
         return this.isGenericNeitherNullNorUndefined(value) && typeof value === 'number' ? true : false;
     }
 
-    isValidBoolean(value: boolean | null | undefined): boolean {
+    isValidBoolean(value: BooleanOrNullOrUndefined): boolean {
         return this.isGenericNeitherNullNorUndefined(value) && typeof value === 'boolean' ? true : false;
     }
  
-    isEitherNullOrUndefined(value: string | null | undefined): boolean {
+    isEitherNullOrUndefined(value: StringOrNullOrUndefined): boolean {
         return (value === null || value === undefined) ? true : false;
     }
 
-    isEitherNullOrUndefinedOrEmpty(value: string | null | undefined): boolean {
+    isEitherNullOrUndefinedOrEmpty(value: StringOrNullOrUndefined): boolean {
         if(this.isEitherNullOrUndefined(value)) return true;
         return this.trimStringValue(value as string) === "" ? true : false;
     }
 
-    isGenericEitherNullOrUndefined(value: boolean | string | number | null | undefined): boolean {
+    isGenericEitherNullOrUndefined(value: boolean | string | NumberOrNullOrUndefined): boolean {
         return (value === null || value === undefined) ? true : false;
     }
 
-    isNeitherNullNorUndefined(value: string | null | undefined): boolean {
+    isNeitherNullNorUndefined(value: StringOrNullOrUndefined): boolean {
         return (value !== null && value !== undefined) ? true : false;
     }
 
-    isNeitherNullNorUndefinedNorEmpty(value: string | null | undefined): boolean {
+    isNeitherNullNorUndefinedNorEmpty(value: StringOrNullOrUndefined): boolean {
         if (this.isNeitherNullNorUndefined(value)) {
             return this.trimStringValue(value as string) !== "" ? true : false;
         }
         return false;
     }
 
-    isGenericNeitherNullNorUndefined(value: boolean | number | string | null | undefined): boolean {
+    isGenericNeitherNullNorUndefined(value: boolean | number | StringOrNullOrUndefined): boolean {
         return (value !== null && value !== undefined) ? true : false;
     }
 
-    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | string | null | undefined): boolean {
+    isGenericNeitherNullNorUndefinedNorInvalid(value: boolean | number | StringOrNullOrUndefined): boolean {
         if(this.isGenericNeitherNullNorUndefined(value)) {
             if(typeof value === 'string') return this.isNotEmpty(value);
             if(typeof value === 'number') return this.isValidNumeric(value) && this.isValidNumeric(value);
@@ -107,10 +108,13 @@ class HelperImpl implements Helper {
     }
 
     sendStatusSuccessResponse(res: any, statusCode: number, response) {
+        if (response && Object.prototype.hasOwnProperty.call(response, "token")) {
+            delete response.token;
+        }
         return res.status(statusCode).json(response);
     }
 
-    sendStatusErrorResponse(res: any, message: string, statusCode: number | undefined | null) {
+    sendStatusErrorResponse(res: any, message: string, statusCode: NumberOrNullOrUndefined) {
         const code = this.isGenericNeitherNullNorUndefined(statusCode) ? statusCode : Constants.STATUS_CODES.INTERNAL_SERVER_ERROR;
         return res.status(code).json({
             message: message,
@@ -151,7 +155,7 @@ class HelperImpl implements Helper {
         };
     }
 
-    generateDefaultSuccessParams(tracerId: unknown, codeIdentifier?: string, source?: string | undefined) {
+    generateDefaultSuccessParams(tracerId: unknown, codeIdentifier?: string, source?: StringOrUndefined) {
         const timestamp = Date.now();
 
         return {
@@ -164,7 +168,7 @@ class HelperImpl implements Helper {
         };
     }
 
-    generateDefaultFailureParams(tracerId: unknown, codeIdentifier?: string, source?: string | undefined) {
+    generateDefaultFailureParams(tracerId: unknown, codeIdentifier?: string, source?: StringOrUndefined) {
         const timestamp = Date.now();
 
         return {

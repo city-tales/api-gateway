@@ -8,12 +8,15 @@ import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
 import { grpcRequest } from "../utils/grpc.js";
-import { EmailVerificationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
+import { EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
-import { networkHelper } from "../utils/network.js";
-import { frontendUrl } from "../config/config.js";
+import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
+import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi } from "../config/config.js";
 import { PasswordlessAuthenticationInterface } from "../interface/passwordless_authentication.js";
+import { axios } from "../config/imports.js";
+import { GoogleAuthenticationInterface, RawGoogleAuthenticationInterface } from "../interface/google_authentication.js";
+import { utils } from "../utils/utils.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -54,8 +57,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
     /* Change the title with logo and org */
     if(!networkHelper.checkTokenValidity(token)) {
-        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
-        return;
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
     }
 
     const labels = {
@@ -77,7 +79,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         logPayload = helper.logErrorStack(logPayload, {}, Constants.JWT.MISSING);
         logger.error({ ...logPayload });
 
-        return helper.sendStatusErrorResponse(res, Constants.JWT.MISSING, Constants.STATUS_CODES.NOT_FOUND);
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.MISSING, isError: true });
     }
 
     let response = new EmailVerificationResponse();
@@ -117,18 +119,98 @@ router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
     const token = req.params.id;
 
     if(!networkHelper.checkTokenValidity(token)) {
-        res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
-        return;
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
     }
 
     networkHelper.setCookie(res, token);
-    res.redirect(frontendUrl);
+    return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
+});
+
+router.get(`${Constants.ROUTES.GOOGLE_INITIATION}`, async (req, res) => {
+    const urlToRedirect = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${googleRedirectUrl}&response_type=code&scope=profile email`
+    res.redirect(urlToRedirect);
+});
+
+router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
+    const { code } = req.query;
+    let response = new GoogleAuthenticationResponse();
+    const context = helper.generateContext();
+    const labels = {
+        operation: Constants.LOKI_LOGGER_LABELS.GOOGLE,
+        type: Constants.LOKI_LOGGER_LABELS.GOOGLE_AUTHENTICATION,
+    };
+    let loggerDefaultParams = {};
+    let logPayload: any = {
+        labels,
+    };
+
+    try {
+        const tokenResponse = await axios.post(googleTokenApi!, null, {
+            params: {
+                code: code,
+                client_id: googleClientId,
+                client_secret: googleClientSecret,
+                redirect_uri: googleRedirectUrl,
+                grant_type: Constants.GOOGLE_PATHS.GRANT_TYPE
+            },
+            headers: {
+                [Constants.GOOGLE_PATHS.CONTENT_TYPE]: Constants.GOOGLE_PATHS.ENCODED_CONTENT_TYPE,
+            }
+        });
+
+        const { access_token } = tokenResponse.data;
+
+        const userData: any = await axios.get(Constants.GOOGLE_PATHS.USER_INFO_URL, {
+            headers: { Authorization: `Bearer ${access_token}` }
+        });
+
+        const rawGoogleAuthenticationRequest = RawGoogleAuthenticationInterface.parse(utils.rawGoogleAuthenticationRequest(userData?.data));
+        if(rawGoogleAuthenticationRequest && rawGoogleAuthenticationRequest?.verifiedEmail !== true) {
+            throw new Error(Constants.GOOGLE_AUTHENTICATION_MESSAGE.NOT_VERIFIED);
+        }
+
+        const userDeviceInformation = utils.parseDeviceInfo(req);
+        const googleAuthenticationRequest = GoogleAuthenticationInterface.parse(utils.prepareGoogleAuthenticationRequest(userDeviceInformation, rawGoogleAuthenticationRequest));
+        const url = `${req.baseUrl}${Constants.ROUTES.GOOGLE_CALLBACK}`;
+
+        logPayload.url = url;
+        logPayload = { ...logPayload, ...googleAuthenticationRequest };
+
+        response = await grpcRequest(
+            clients[Services.RpcRequest.AuthRpcRequest],
+            Services.AuthRpcServices.GoogleAuthentication,
+            googleAuthenticationRequest,
+            context,
+        );
+
+        if(response.statusCode === Constants.STATUS_CODES.OK || response.statusCode === Constants.STATUS_CODES.CREATED) {
+            networkHelper.setCookie(res, response.token);
+
+            loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logResponse(logPayload, response);
+            logger.info({ ...logPayload });
+
+            res.redirect(FRONTEND_ROUTES.HOME_PAGE);
+        }        
+        else {
+            res.redirect(FRONTEND_ROUTES.SIGNUP_PAGE); /* Show custom error on page */
+        }
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        res.redirect(FRONTEND_ROUTES.SIGNUP_PAGE); /* Show custom error on page */
+    }
 });
 
 const emailLogin = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        // redirect to Home
-        return;
+        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
     const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
@@ -206,8 +288,8 @@ const emailLogin = async (req, res) => {
 
 const emailSignUp = async (req, res) => {
     if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        res.redirect(frontendUrl);
-        return;
+        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
     const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
@@ -263,6 +345,9 @@ const emailSignUp = async (req, res) => {
                     name: emailSignUpRequest.userEmailSignUpRequest.name,
                     email: emailSignUpRequest.userEmailSignUpRequest.email
                 });
+            }
+            else {
+                networkHelper.setCookie(res, response.token);
             }
         }
 

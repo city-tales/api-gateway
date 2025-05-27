@@ -1,7 +1,13 @@
-import { jwtPublicKey } from "../config/config.js";
+import { frontendUrl, jwtPublicKey } from "../config/config.js";
 import { jwt } from "../config/imports.js";
 import { Constants } from "./constants.js";
 import { helper } from "./helper.js";
+
+export const FRONTEND_ROUTES = {
+    LOGIN_PAGE: `${frontendUrl}/login`,
+    SIGNUP_PAGE: `${frontendUrl}/signup`,
+    HOME_PAGE: `${frontendUrl}/home`,
+};
 
 interface NetworkHelper {
     setCookie(res: any, token: string, tokenAge?: number);
@@ -35,4 +41,4 @@ class NetworkHelperImpl implements NetworkHelper {
     }
 }   
 
-export const networkHelper = new NetworkHelperImpl();
+export const networkHelper = new NetworkHelperImpl();   

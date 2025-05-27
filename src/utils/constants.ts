@@ -56,6 +56,7 @@ enum LOKI_LOGGER_LABELS {
     SIGNUP_REQUEST = 'signupRequest',
     LOGIN_REQUEST = 'loginRequest',
     EMAIL_VERIFICATION = 'emailVerification',
+    GOOGLE_AUTHENTICATION = 'googleAuthentication',
     MAGIC_LINK = 'magicLink',
 
     EMAIL = 'email',
@@ -85,6 +86,8 @@ enum ROUTES {
     EMAIL_VERIFICATION = '/verify/:id',
     MAGIC_LINK = '/passwordless/magiclink',
     PASSWORDLESS = '/:id',
+    GOOGLE_INITIATION = '/auth/google',
+    GOOGLE_CALLBACK = '/auth/google/callback',
 }
 
 export const URL = {
@@ -193,6 +196,15 @@ enum PASSWORDLESS_AUTHENTICATION_MESSAGE {
     FAILED = 'Authentication Failed, Retry',
 };
 
+enum GOOGLE_AUTHENTICATION_MESSAGE {
+    EMPTY = '',
+    EMPTY_TOKEN = '',
+    PROCESSING = 'Processing',
+    NOT_VERIFIED = 'Please verify gmail account',
+    SUCCESS = 'Logging In',
+    FAILED = 'Server Error',
+};
+
 enum REDIS_MESSAGE {
     FAILED = 'Redis Failure',
     NO_CONTENT = 'No Data In Redis',
@@ -212,6 +224,14 @@ enum EJS_PATHS {
     MAGIC_LINK_CSS = './views/magic_link.css',
     REDIRECT_EMAIL_VERIFICATION = './redirect_email_verification.ejs',
     REDIRECT_EMAIL_VERIFICATION_CSS = './redirect_email_verification.css',
+};
+
+enum GOOGLE_PATHS {
+    TOKEN_API = 'https://oauth2.googleapis.com/token',
+    GRANT_TYPE = 'authorization_code',
+    CONTENT_TYPE = 'Content-Type',
+    ENCODED_CONTENT_TYPE = 'application/x-www-form-urlencoded',
+    USER_INFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo',
 };
 
 enum STATUS_CODES {
@@ -383,9 +403,11 @@ export class Constants {
     static readonly SIGNUP_MESSAGE = SIGNUP_MESSAGE;
     static readonly LOGIN_MESSAGE = LOGIN_MESSAGE;
     static readonly PASSWORDLESS_AUTHENTICATION_MESSAGE = PASSWORDLESS_AUTHENTICATION_MESSAGE;
+    static readonly GOOGLE_AUTHENTICATION_MESSAGE = GOOGLE_AUTHENTICATION_MESSAGE;
     static readonly REDIS_MESSAGE = REDIS_MESSAGE;
     static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
     static readonly EJS_PATHS = EJS_PATHS;
+    static readonly GOOGLE_PATHS = GOOGLE_PATHS;
 
     static readonly STATUS_CODES = STATUS_CODES;
     static readonly ERRORS = ERRORS;

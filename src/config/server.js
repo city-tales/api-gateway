@@ -1,5 +1,6 @@
 import { cors, express, path, server, fileURLToPath, cookieParser } from "./imports.js";
 import { Constants } from "../utils/constants.js";
+import { frontendUrl } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.resolve(path.dirname(__filename), '..');
@@ -10,7 +11,8 @@ server.use(cookieParser());
 
 server.use(
     cors({
-        origin: "*",
+        origin: [frontendUrl],
+        credentials: true,
         methods: [Constants.REQUEST_METHODS.POST, Constants.REQUEST_METHODS.GET, Constants.REQUEST_METHODS.PUT, 
             Constants.REQUEST_METHODS.PATCH, Constants.REQUEST_METHODS.HEAD, Constants.REQUEST_METHODS.OPTIONS ],
         allowedHeaders: [Constants.REQUEST_HEADERS.CONTENT_TYPE, Constants.REQUEST_HEADERS.AUTHORIZATION ],
