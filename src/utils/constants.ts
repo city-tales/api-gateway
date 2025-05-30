@@ -13,6 +13,8 @@ enum DB {
 }
 
 enum QUEUE_DB {
+    SINGLE_CALL = 1,
+    LOW_ATTEMPT = 2,
     MAX_ATTEMPTS = 3,
     BACKOFF_EXPONENTIAL = 'exponential',
     STALLED_TIMEOUT_INTERVAL = 300000,
@@ -20,10 +22,12 @@ enum QUEUE_DB {
     DRAIN_DELAY_TIMEOUT = 300,
     BACKOFF_DELAY = 5000,
     JOB_TIMEOUT = 10000,
+    LONG_TIMEOUT = 30000,
     LOCK_DURATION = 30000,
     CONCURRENCY = 5,
     EMAIL_VERIFICATION = 'emailVerification',
     PASSWORDLESS = 'passwordless',
+    PASSWORDLESS_BACKGROUND_VERIFICATION = 'passwordlessBackgroundVerification',
 };
 
 enum DB_TIMEOUTS {
@@ -58,6 +62,7 @@ enum LOKI_LOGGER_LABELS {
     EMAIL_VERIFICATION = 'emailVerification',
     GOOGLE_AUTHENTICATION = 'googleAuthentication',
     MAGIC_LINK = 'magicLink',
+    MAGIC_LINK_BACKGROUND_VERIFICATION = 'magicLinkBackgroundVerification',
 
     EMAIL = 'email',
     GOOGLE = 'google',
@@ -142,6 +147,7 @@ enum REQUEST_METHODS {
 };
 
 enum REQUEST_HEADERS {
+    TOKEN = 'token',
     CONTENT_TYPE = 'Content-Type',
     AUTHORIZATION = 'Authorization',
 };
@@ -184,6 +190,7 @@ enum LOGIN_MESSAGE {
     NOT_VERIFIED = 'Please verify email',
     NO_CONTENT = 'Account do not exists',
     EMAIL_DO_NOT_EXISTS = 'Email do not exists',
+    EMAIL_VERIFIED = 'Email successfully verified',
     WRONG_AUTHENTICATION = 'Wrong Password',
     VERIFICATION_FAILED = 'Retry Verification',
     SUCCESS = 'Logging In',
@@ -191,7 +198,14 @@ enum LOGIN_MESSAGE {
 };
 
 enum PASSWORDLESS_AUTHENTICATION_MESSAGE {
+    EMPTY = '',
     EMPTY_TOKEN = '',
+    NO_CONTENT = 'Email do not exists',
+    UPDATED = 'User details updated',
+    ALREADY_VERIFIED = 'User already verified',
+    EXISTING_USER = 'Account Already exists',
+    LINK_ALREADY_SENT = 'Magic Link is already sent to the email address, Kindly check Spam',
+    CREATED = 'Magic Link is sent to email',
     SUCCESS = 'Logging In',
     FAILED = 'Authentication Failed, Retry',
 };
