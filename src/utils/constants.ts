@@ -223,7 +223,6 @@ enum EJS_PATHS {
     MAGIC_LINK = './views/magic_link.ejs',
     MAGIC_LINK_CSS = './views/magic_link.css',
     REDIRECT_EMAIL_VERIFICATION = './redirect_email_verification.ejs',
-    REDIRECT_EMAIL_VERIFICATION_CSS = './redirect_email_verification.css',
 };
 
 enum GOOGLE_PATHS {
