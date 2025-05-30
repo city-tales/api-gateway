@@ -1,4 +1,4 @@
-import { address, jwtPublicKey, organisation, organisationContact, serverUrl, year } from "../config/config.js";
+import { address, jwtPrivateKey, jwtPublicKey, organisation, organisationContact, serverUrl, year } from "../config/config.js";
 import { ejs, fs, juice, jwt, path, uuidv4 } from "../config/imports.js";
 import { logger } from "../config/loki.js";
 import { transporter } from "../config/nodemailer.js";
@@ -30,6 +30,7 @@ interface Helper {
     generateContext();
     generateDefaultSuccessParams(tracerId: string, codeIdentifier?: string, source?: StringOrUndefined);
     generateDefaultFailureParams(tracerId: string, codeIdentifier?: string, source?: StringOrUndefined);
+    generateRefreshToken(_id: string, username: string, email: string): string;
     decryptAuthToken(token: string): Object;
     sendEmail(url: string, filePath: string, subject: string, tracerId: string, renderedHTML, user, labels, source?: string);
     prepareToSendEmail(tracerId: string, params, labels, subject: string, filePath: string, cssPath: string, source: string, url: string);
@@ -181,6 +182,21 @@ class HelperImpl implements Helper {
             ...(this.isNeitherNullNorUndefinedNorEmpty(codeIdentifier!) && { codeIdentifier }),
             ...(this.isNeitherNullNorUndefinedNorEmpty(source!) && { source })
         };
+    }
+
+    generateRefreshToken(_id: string, username: string, email: string): string {
+        const payload = {
+            _id: _id,
+            username: username,
+            email: email,
+        };
+
+        const token: string = jwt.sign(payload, jwtPrivateKey, {
+            algorithm: Constants.JWT_CONFIG.ALGORITHM,
+            expiresIn: Constants.JWT_CONFIG.REFRESH_LIFE
+        });
+
+        return token;
     }
 
     decryptAuthToken(token: string): any {

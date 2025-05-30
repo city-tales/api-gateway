@@ -5,6 +5,7 @@ const year = process.env.YEAR;
 const address = process.env.ADDRESS;
 const organisationContact = process.env.ORGANISATION_CONTACT;
 const port = process.env.PORT;
+const jwtPrivateKey = process.env.JWT_PRIVATE_KEY;
 const jwtPublicKey = process.env.JWT_PUBLIC_KEY;
 const serverUrl = process.env.SERVER_URL;
 const frontendUrl = process.env.FRONTEND_URL;
@@ -37,6 +38,7 @@ export {
     address,
     organisationContact,
     port,
+    jwtPrivateKey,
     jwtPublicKey,
     serverUrl,
     frontendUrl,
