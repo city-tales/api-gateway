@@ -14,7 +14,7 @@ import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
 import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi, serverUrl } from "../config/config.js";
 import { PasswordlessAuthenticationHTTPRequest } from "../requests/passwordless_authentication.js";
 import { axios } from "../config/imports.js";
-import { GoogleAuthenticationHTTPRequest, RawGoogleAuthenticationHTTPRequest } from "../requests/google_authentication.js";
+import { RawGoogleAuthenticationHTTPRequest } from "../requests/google_authentication.js";
 import { utils } from "../utils/utils.js";
 import { grpcProtoRequest } from "./grpc_requests.js";
 import { grpcRequest } from "../utils/grpc.js";
@@ -59,6 +59,10 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     let isError: boolean = true;
 
     /* Change the title with logo and org */
+    if(networkHelper.isUserToBeRedirectedToHome(req, res)) {
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: true, messageToShow: Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.ALREADY_VERIFIED, isError: isError });
+    }
+
     if(!networkHelper.checkTokenValidity(token)) {
         return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: isError });
     }
@@ -114,6 +118,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
             logger.info({ ...logPayload });
             
             networkHelper.setCookie(res, token);
+            networkHelper.setRefreshTokenCookie(res, helper.generateRefreshToken(decryptedAuthToken._id, decryptedAuthToken.username, decryptedAuthToken.email));
         }
         else {
             response.success = false;
@@ -132,6 +137,10 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
 });
 
 router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
+    if(networkHelper.isUserToBeRedirectedToHome(req, res)) {
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
+    }
+
     const token = req.params.id;
 
     if(!networkHelper.checkTokenValidity(token)) {
@@ -160,6 +169,8 @@ router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
         }
 
         networkHelper.setCookie(res, token);
+        const payload = helper.decryptAuthToken(token);
+        networkHelper.setRefreshTokenCookie(res, helper.generateRefreshToken(payload._id, payload.username, payload.email));
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
         logPayload = { ...logPayload, ...loggerDefaultParams };
@@ -237,6 +248,8 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
 
         if(response.statusCode === Constants.STATUS_CODES.OK || response.statusCode === Constants.STATUS_CODES.CREATED) {
             networkHelper.setCookie(res, response.token);
+            const payload = helper.decryptAuthToken(response.token);
+            networkHelper.setRefreshTokenCookie(res, helper.generateRefreshToken(payload._id, payload.username, rawGoogleAuthenticationRequest.email));
 
             loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
             logPayload = { ...logPayload, ...loggerDefaultParams };
@@ -257,13 +270,14 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
 
         res.redirect(FRONTEND_ROUTES.SIGNUP_PAGE); /* Show custom error on page */
     }
+
+    res.redirect(FRONTEND_ROUTES.LOGIN_PAGE);
 });
 
 const emailLogin = async (req, res) => {
-    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
+    if(networkHelper.isUserToBeRedirectedToHome(req, res)) {
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
-    } */
+    }
 
     const rawEmailLoginRequest = EmailLoginHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
     const userDeviceInformation = utils.parseDeviceInfo(req);
@@ -313,6 +327,8 @@ const emailLogin = async (req, res) => {
                     name: response.name,
                     username: payload.username,
                 };
+                networkHelper.setCookie(res, response.token);
+                networkHelper.setRefreshTokenCookie(res, helper.generateRefreshToken(payload._id, payload.username, rawEmailLoginRequest.email));
 
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.DB.SAVE_IN_REDIS, {
                     key: redisKey,
@@ -336,7 +352,7 @@ const emailLogin = async (req, res) => {
         logPayload = helper.logErrorStack(logPayload, error);
         logger.error({ ...logPayload });
 
-        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+        return helper.sendStatusErrorResponse(res, error.details, error.statusCode);
     }
 
     logger.info({ ...logPayload });
@@ -344,10 +360,9 @@ const emailLogin = async (req, res) => {
 };
 
 const emailSignUp = async (req, res) => {
-    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
+    if(networkHelper.isUserToBeRedirectedToHome(req, res)) {
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
-    } */
+    }
 
     const rawEmailSignUpRequest = EmailSignUpHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
     const userDeviceInformation = utils.parseDeviceInfo(req);
@@ -398,7 +413,7 @@ const emailSignUp = async (req, res) => {
         logPayload = helper.logErrorStack(logPayload, error);
         logger.error({ ...logPayload });
 
-        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+        return helper.sendStatusErrorResponse(res, error.details, error.statusCode);
     }
 
     logger.info({ ...logPayload });
@@ -459,10 +474,9 @@ const retryEmailVerification = async (req, res) => {
 };
 
 const magicLinkPasswordless = async (req, res) => {
-    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
+    if(networkHelper.isUserToBeRedirectedToHome(req, res)) {
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
-    } */
+    }
 
     const rawPasswordlessAuthenticationRequest = PasswordlessAuthenticationHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
     const userDeviceInformation = utils.parseDeviceInfo(req);

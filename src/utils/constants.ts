@@ -71,7 +71,9 @@ enum LOKI_LOGGER_LABELS {
     QUEUE = 'queue',
     WORKER = 'worker',
     CACHE_DB = 'cache-db',
-    QUEUE_DB = 'queue-db'
+    QUEUE_DB = 'queue-db',
+
+    REFRESH_TOKEN = 'referesh-token',
 };
 
 enum SERIALISATION_KEYS {
@@ -148,6 +150,7 @@ enum REQUEST_METHODS {
 
 enum REQUEST_HEADERS {
     TOKEN = 'token',
+    REFRESH_TOKEN = 'refresh-token',
     CONTENT_TYPE = 'Content-Type',
     AUTHORIZATION = 'Authorization',
 };
@@ -161,7 +164,10 @@ enum JWT {
 };  
 
 enum JWT_CONFIG {
+    VERY_SHORT_LIVED = 600,
+    SHORT_LIVED = 1200,
     EXPIRY = '1d',
+    REFRESH_LIFE = '7d',
     ALGORITHM = 'ES256'
 }
 
