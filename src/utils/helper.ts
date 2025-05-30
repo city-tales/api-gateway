@@ -37,6 +37,8 @@ interface Helper {
     serialiseRedisKeyValues(keyValuePairs: Object): string;
     parseRedisValueToObject(value: string);
     setRedis(tracerId: string, labels, key: string, value: string, timeout?: number): Promise<void>;
+    serializeError(error);
+    serializeErrorStrict(error, options);
     logErrorStack(logPayload: any, error: any);
     logResponse(logPayload: any, response);
 }
@@ -333,10 +335,144 @@ class HelperImpl implements Helper {
         logger.info({ ...logPayload });
     }
 
+    /**
+     * Helper function to serialize error objects with only defined and non-empty properties
+     * @param {Error} error - The error object to serialize
+     * @returns {Object} - Serialized error object with only meaningful properties
+     */
+    serializeError(error) {
+        if (!error) return {};
+        
+        const serialized = {};
+        const standardProps = [
+            'name', 'message', 'stack', 'code', 'statusCode', 
+            'status', 'errno', 'syscall', 'path', 'cause'
+        ];
+        
+        const isValidValue = (value) => {
+            if (Array.isArray(value) && value.length === 0) return false;
+            if (typeof value === 'object' && Object.keys(value).length === 0) return false;
+            if (this.isGenericNeitherNullNorUndefinedNorInvalid(value)) return false;
+            return true;
+        };
+        
+        standardProps.forEach(prop => {
+            if (prop in error && isValidValue(error[prop])) {
+                try {
+                    serialized[prop] = error[prop];
+                } catch (e) {
+                    // Skip properties that can't be accessed
+                }
+            }
+        });
+        
+        for (const key in error) {
+            if (error.hasOwnProperty(key) && 
+                !(key in serialized) && 
+                isValidValue(error[key])) {
+                try {
+                    serialized[key] = error[key];
+                } catch (e) {
+                    // Skip properties that can't be serialized
+                }
+            }
+        }
+        
+        const nonEnumerableProps = Object.getOwnPropertyNames(error);
+        nonEnumerableProps.forEach(prop => {
+            if (!(prop in serialized) && 
+                isValidValue(error[prop]) && 
+                typeof error[prop] !== 'function') {
+                try {
+                    serialized[prop] = error[prop];
+                } catch (e) {
+                    // Skip properties that can't be accessed
+                }
+            }
+        });
+        
+        return serialized;
+    }
+
+    /**
+     * Alternative version with more strict filtering options
+     * @param {Error} error - The error object to serialize
+     * @param {Object} options - Configuration options
+     * @returns {Object} - Serialized error object
+     */
+    serializeErrorStrict(error, options = {}) {
+        if (!error) return {};
+        
+        const {
+            includeStack = true,
+            includeEmptyStrings = false,
+            includeZeroValues = true,
+            includeFunctions = false,
+            customProps = []
+        }: any = options;
+        
+        const serialized = {};
+        
+        // Standard properties to always check
+        const standardProps = [
+            'name', 'message', 
+            ...(includeStack ? ['stack'] : []),
+            'code', 'statusCode', 'status', 'errno', 
+            'syscall', 'path', 'cause', ...customProps
+        ];
+        
+        // More granular validation
+        const isValidValue = (value, key) => {
+            if (value === null || value === undefined) return false;
+            
+            if (typeof value === 'string') {
+                if (!includeEmptyStrings && value.trim() === '') return false;
+                return true;
+            }
+            
+            if (typeof value === 'number') {
+                if (!includeZeroValues && value === 0) return false;
+                return !isNaN(value);
+            }
+            
+            if (typeof value === 'function' && !includeFunctions) return false;
+            
+            if (typeof value === 'object') {
+                if (Array.isArray(value)) return value.length > 0;
+                return Object.keys(value).length > 0;
+            }
+            
+            return true;
+        };
+        
+        // Process all possible properties
+        const allProps = [
+            ...standardProps,
+            ...Object.keys(error),
+            ...Object.getOwnPropertyNames(error)
+        ];
+        
+        // Remove duplicates
+        const uniqueProps = [...new Set(allProps)];
+        
+        uniqueProps.forEach(prop => {
+            if (prop in error && isValidValue(error[prop], prop)) {
+                try {
+                    serialized[prop] = error[prop];
+                } catch (e) {
+                    // Skip properties that can't be accessed
+                }
+            }
+        });
+        
+        return serialized;
+    }
+
     logErrorStack(logPayload: any, error: any, customMessage?: string) {
+        const errorObj = this.serializeError(error);
         const cloneLogPayload = {
             ...logPayload,
-            error: { ...(logPayload.error || {}) }
+            error: { ...(logPayload.error || errorObj || {}) }
         };
 
         ['message', 'details', 'code', 'statusCode', 'stack', 'name', 'token', 'retryVerification', 'success', 'verified'].forEach((key) => {
