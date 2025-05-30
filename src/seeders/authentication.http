@@ -3,22 +3,13 @@ curl --location 'http://localhost:8080/api/authentication' \
 --header 'purpose: login' \
 --header 'channel: email' \
 --header 'Content-Type: application/json' \
+--header 'Cookie: token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIxZWY3NTczMi1jZmM4LTRmYWItYjgyOC1lZGMwYWM2YmU3OTMiLCJ1c2VybmFtZSI6ImFua2l0YW5hbmQyMTI1LXN0cnUtNTU1LTY5MWYiLCJlbWFpbCI6ImFua2l0YW5hbmQyMTI1QGdtYWlsLmNvbSIsInNvdXJjZSI6InNpZ251cFJlcXVlc3QiLCJpYXQiOjE3NDg0NjMxNjYsImV4cCI6MTc0ODU0OTU2Nn0.xAM-jGd3ULMNN03YAsO_EP5oOAZ30S6HqRvXxbAhsdBDIqBSCzHuKc1ZSS1BCrDgqNTFdUTfD-TcwDJTvZAgNw' \
 --data-raw '{
-    "userDeviceInformation": {
-        "browserInfo": "Chrome 120.0.0.1",
-        "deviceId": "abc123xyz456",
-        "deviceName": "John'\''s MacBook Pro",
-        "deviceType": "Laptop",
-        "ipAddress": "192.168.1.1",
-        "loginTime": "2025-03-29T12:34:56Z",
-        "platform": "macOS"
-    },
-    "userEmailLoginRequest": {
-        "email": "ankitanand2125@gmail.com",
-        "password": "P@ssw0rd123!"
-    }
+    "email": "ankitanand2125@gmail.com",
+    "password": "P@ssw0rd123!"
 }'
 *****************************************************
+
 
 ********************* Register **********************
 curl --location 'http://localhost:8080/api/authentication' \
@@ -26,24 +17,13 @@ curl --location 'http://localhost:8080/api/authentication' \
 --header 'channel: email' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "userDeviceInformation": {
-        "browserInfo": "Chrome 120.0.0.1",
-        "deviceId": "abc123xyz456",
-        "deviceName": "John'\''s MacBook Pro",
-        "deviceType": "Laptop",
-        "ipAddress": "192.168.1.1",
-        "loginTime": "2025-03-29T12:34:56Z",
-        "platform": "macOS"
-    },
-    "userEmailSignUpRequest": {
-        "alternatePhone": "",
-        "email": "ankitanand2125@gmail.com",
-        "name": "Ankit Anand",
-        "password": "P@ssw0rd123!",
-        "phoneNumber": "+1-555-123-4567",
-        "primaryCountryCode": "US",
-        "secondaryCountryCode": ""
-    }
+    "name": "Ankit Anand",
+    "email": "ankitanand2125@gmail.com",
+    "password": "P@ssw0rd123!",
+    "primaryCountryCode": "US",
+    "phoneNumber": "+1-555-123-4567",
+    "alternatePhone": "",
+    "secondaryCountryCode": ""
 }'
 ***************************************************
 
@@ -54,17 +34,6 @@ curl --location 'http://localhost:8080/api/authentication' \
 --header 'channel: passwordless' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "userDeviceInformation": {
-        "browserInfo": "Chrome 120.0.0.1",
-        "deviceId": "abc123xyz456",
-        "deviceName": "John'\''s MacBook Pro",
-        "deviceType": "Laptop",
-        "ipAddress": "192.168.1.1",
-        "loginTime": "2025-03-29T12:34:56Z",
-        "platform": "macOS"
-    },
-    "userPasswordlessAuthenticationRequest": {
-        "email": "ankitanand2125@gmail.com"
-    }
+    "email": "ankitanand2125@gmail.com"
 }'
 ***************************************************

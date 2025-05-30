@@ -5,7 +5,7 @@ import { jwtPublicKey } from "../config/config.js";
 
 export const verifyJwtToken = (req, res, next) => {
     const { token } = req[Constants.REQUEST_PAYLOAD.HEADERS];
-    const rawTokenInCookie = req.cookies.jwt_access_token;
+    const rawTokenInCookie = req.cookies[Constants.REQUEST_HEADERS.TOKEN];
     const sanitisedToken = rawTokenInCookie?.startsWith('s:') ? rawTokenInCookie.slice(2) : rawTokenInCookie;
 
     if(helper.isEitherNullOrUndefinedOrEmpty(token) && helper.isEitherNullOrUndefinedOrEmpty(rawTokenInCookie)) {

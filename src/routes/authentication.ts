@@ -2,21 +2,22 @@ import { logger } from "../config/loki.js";
 import { cacheDB } from "../config/redis.js";
 import { clients } from "../config/registery.js";
 import { Services } from "../config/services.js";
-import { EmailLoginInterface } from "../interface/email_login.js";
-import { EmailSignUpInterface } from "../interface/email_signup.js";
+import { EmailLoginHTTPRequest } from "../requests/email_login.js";
+import { EmailSignUpHTTPRequest } from "../requests/email_signup.js";
 import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
-import { grpcRequest } from "../utils/grpc.js";
 import { EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
 import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
-import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi } from "../config/config.js";
-import { PasswordlessAuthenticationInterface } from "../interface/passwordless_authentication.js";
+import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi, serverUrl } from "../config/config.js";
+import { PasswordlessAuthenticationHTTPRequest } from "../requests/passwordless_authentication.js";
 import { axios } from "../config/imports.js";
-import { GoogleAuthenticationInterface, RawGoogleAuthenticationInterface } from "../interface/google_authentication.js";
+import { GoogleAuthenticationHTTPRequest, RawGoogleAuthenticationHTTPRequest } from "../requests/google_authentication.js";
 import { utils } from "../utils/utils.js";
+import { grpcProtoRequest } from "./grpc_requests.js";
+import { grpcRequest } from "../utils/grpc.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -55,9 +56,11 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
 
 router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
+    let isError: boolean = true;
+
     /* Change the title with logo and org */
     if(!networkHelper.checkTokenValidity(token)) {
-        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: isError });
     }
 
     const labels = {
@@ -67,6 +70,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.EMAIL_VERIFICATION}}`;
     let loggerDefaultParams = {};
+    
     let logPayload = {
         labels,
         url: url,
@@ -96,12 +100,24 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
             context,
         );
 
-        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
-        logPayload = { ...logPayload, ...loggerDefaultParams };
-        logPayload = helper.logResponse(logPayload, response);
-        logger.info({ ...logPayload });
-        
-        networkHelper.setCookie(res, token);
+        if(response.statusCode === Constants.STATUS_CODES.OK || response.statusCode === Constants.STATUS_CODES.CREATED) {
+            const decryptedAuthToken = helper.decryptAuthToken(token);
+            if(decryptedAuthToken.source === Constants.AUTH_CHANNELS.PASSWORDLESS) {
+                return helper.sendStatusSuccessResponse(res, response.statusCode, response);
+            }
+
+            isError = false;
+
+            loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
+            logPayload = { ...logPayload, ...loggerDefaultParams };
+            logPayload = helper.logResponse(logPayload, response);
+            logger.info({ ...logPayload });
+            
+            networkHelper.setCookie(res, token);
+        }
+        else {
+            response.success = false;
+        }
     }
     catch (error) {
         response.message = Constants.LOGIN_MESSAGE.VERIFICATION_FAILED;
@@ -112,7 +128,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         logger.error({ ...logPayload });
     }
 
-    res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: false });
+    return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: isError });
 });
 
 router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
@@ -122,7 +138,43 @@ router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
         return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
     }
 
-    networkHelper.setCookie(res, token);
+    const context = helper.generateContext();
+    const labels = {
+        operation: Constants.LOKI_LOGGER_LABELS.MAGIC_LINK,
+        type: Constants.LOKI_LOGGER_LABELS.MAGIC_LINK_BACKGROUND_VERIFICATION,
+    }
+
+    let response: any = {};
+    let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        token: token,
+        context,
+    };
+    const url = `${serverUrl}${Constants.ROUTES.AUTHENTICATION}/verify/${token}`;
+
+    try {
+        response = await axios.get(url);
+        if(!(response?.data?.statusCode === Constants.STATUS_CODES.OK || response?.data?.statusCode === Constants.STATUS_CODES.CREATED)) {
+            throw new Error(Constants.SIGNUP_MESSAGE.FAILED);
+        }
+
+        networkHelper.setCookie(res, token);
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        return res.redirect(FRONTEND_ROUTES.LOGIN_PAGE);
+    }
+
+    logger.info({ ...logPayload });
     return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
 });
 
@@ -164,13 +216,13 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
             headers: { Authorization: `Bearer ${access_token}` }
         });
 
-        const rawGoogleAuthenticationRequest = RawGoogleAuthenticationInterface.parse(utils.rawGoogleAuthenticationRequest(userData?.data));
+        const rawGoogleAuthenticationRequest = RawGoogleAuthenticationHTTPRequest.parse(utils.rawGoogleAuthenticationRequest(userData?.data));
         if(rawGoogleAuthenticationRequest && rawGoogleAuthenticationRequest?.verifiedEmail !== true) {
             throw new Error(Constants.GOOGLE_AUTHENTICATION_MESSAGE.NOT_VERIFIED);
         }
 
         const userDeviceInformation = utils.parseDeviceInfo(req);
-        const googleAuthenticationRequest = GoogleAuthenticationInterface.parse(utils.prepareGoogleAuthenticationRequest(userDeviceInformation, rawGoogleAuthenticationRequest));
+        const googleAuthenticationRequest = grpcProtoRequest.googleAuthenticationRequest(rawGoogleAuthenticationRequest, userDeviceInformation);
         const url = `${req.baseUrl}${Constants.ROUTES.GOOGLE_CALLBACK}`;
 
         logPayload.url = url;
@@ -208,12 +260,15 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
 });
 
 const emailLogin = async (req, res) => {
-    if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
-    }
+    } */
 
-    const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const rawEmailLoginRequest = EmailLoginHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const emailLoginRequest = grpcProtoRequest.emailLoginRequest(rawEmailLoginRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.LOGIN}`;
     let response = new LoginResponse();
@@ -237,26 +292,7 @@ const emailLogin = async (req, res) => {
             context,
         );
 
-        if(response.message === Constants.LOGIN_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
-            const payload = helper.decryptAuthToken(response.token);
-            const userInfoForRedisKey = {
-                email: emailLoginRequest.userEmailLoginRequest.email,
-            };
-            const redisKey: string = helper.serialiseRedisKeyValues(
-                helper.prepareUserRedisKeyValues(Constants.SERIALISATION_KEYS.USER, userInfoForRedisKey)
-            );
-            const redisEmailValue: Object = {
-                _id: payload._id,
-                name: response.name,
-                username: payload.username,
-            };
-
-            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.DB.SAVE_IN_REDIS, {
-                key: redisKey,
-                value: helper.serialiseRedisKeyValues(redisEmailValue),
-                timeout: Constants.DB_TIMEOUTS.LONG_CACHE_DB_REDIS_TIMEOUT
-            });
-
+        if(helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
             if(response.retryVerification) {
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
                     token: response.token,
@@ -265,9 +301,30 @@ const emailLogin = async (req, res) => {
                 });
             }
             else {
-                networkHelper.setCookie(res, response.token);
+                const payload = helper.decryptAuthToken(response.token);
+                const userInfoForRedisKey = {
+                    email: emailLoginRequest.userEmailLoginRequest.email,
+                };
+                const redisKey: string = helper.serialiseRedisKeyValues(
+                    helper.prepareUserRedisKeyValues(Constants.SERIALISATION_KEYS.USER, userInfoForRedisKey)
+                );
+                const redisEmailValue: Object = {
+                    _id: payload._id,
+                    name: response.name,
+                    username: payload.username,
+                };
+
+                await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.DB.SAVE_IN_REDIS, {
+                    key: redisKey,
+                    value: helper.serialiseRedisKeyValues(redisEmailValue),
+                    timeout: Constants.DB_TIMEOUTS.LONG_CACHE_DB_REDIS_TIMEOUT
+                });
             }
         }
+        else {
+            throw new Error(response.message);
+        }
+        networkHelper.setCookie(res, response.token);
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.LOGIN_REQUEST);
         logPayload = { ...logPayload, ...loggerDefaultParams };
@@ -287,12 +344,15 @@ const emailLogin = async (req, res) => {
 };
 
 const emailSignUp = async (req, res) => {
-    if(networkHelper.isUserToBeRedirectedToHome(req)) {
-        networkHelper.setCookie(res, req.cookies.jwt_access_token);
+    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
-    }
+    } */
 
-    const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const rawEmailSignUpRequest = EmailSignUpHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const emailSignUpRequest = grpcProtoRequest.emailSignUpRequest(rawEmailSignUpRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.SIGNUP}`;
     let response = new SignUpResponse();
@@ -317,27 +377,6 @@ const emailSignUp = async (req, res) => {
         );
 
         if (response.message === Constants.SIGNUP_MESSAGE.CREATED || Constants.SIGNUP_MESSAGE.EXISTING_USER) {
-            if (helper.isNeitherNullNorUndefined(response.token)) {
-                const payload = helper.decryptAuthToken(response.token);
-                const userInfoForRedisKey = {
-                    email: emailSignUpRequest.userEmailSignUpRequest.email,
-                };
-                const redisKey: string = helper.serialiseRedisKeyValues(
-                    helper.prepareUserRedisKeyValues(Constants.SERIALISATION_KEYS.USER, userInfoForRedisKey)
-                );
-                const redisEmailValue: Object = {
-                    _id: payload._id,
-                    name: emailSignUpRequest.userEmailSignUpRequest.name,
-                    username: payload.username,
-                    email: payload.email,
-                };
-
-                await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.DB.SAVE_IN_REDIS, {
-                    key: redisKey,
-                    value: helper.serialiseRedisKeyValues(redisEmailValue)
-                });
-            }
-
             if(!response.verified) {
                 /* Customise data for magic link */
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
@@ -346,9 +385,7 @@ const emailSignUp = async (req, res) => {
                     email: emailSignUpRequest.userEmailSignUpRequest.email
                 });
             }
-            else {
-                networkHelper.setCookie(res, response.token);
-            }
+            networkHelper.setCookie(res, response.token);
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
@@ -422,7 +459,15 @@ const retryEmailVerification = async (req, res) => {
 };
 
 const magicLinkPasswordless = async (req, res) => {
-    const passwordlessAuthenticationRequest = PasswordlessAuthenticationInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
+    } */
+
+    const rawPasswordlessAuthenticationRequest = PasswordlessAuthenticationHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const passwordlessAuthenticationRequest = grpcProtoRequest.passwordlessAuthenticationRequest(rawPasswordlessAuthenticationRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.MAGIC_LINK}`;
     let response = new PasswordlessAuthenticationResponse();
@@ -446,11 +491,13 @@ const magicLinkPasswordless = async (req, res) => {
             context,
         );
 
-        if(response.statusCode === Constants.STATUS_CODES.OK && response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.SUCCESS && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
-            await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.PASSWORDLESS, {
-                token: response.token,
-                email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email,
-            });
+        if(response.statusCode === Constants.STATUS_CODES.OK && helper.isNeitherNullNorUndefinedNorEmpty(response.token)) {
+            if(response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.CREATED || response.message === Constants.PASSWORDLESS_AUTHENTICATION_MESSAGE.EXISTING_USER) {
+                await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.PASSWORDLESS, {
+                    token: response.token,
+                    email: passwordlessAuthenticationRequest.userPasswordlessAuthenticationRequest.email,
+                });
+            }
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.MAGIC_LINK);

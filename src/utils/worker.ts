@@ -1,11 +1,11 @@
 import { helper } from "./helper.js";
-import { _, Job, Worker } from "../config/imports.js";
+import { _, axios, Job, Worker } from "../config/imports.js";
 import { logger } from "../config/loki.js";
 import { bullMQConnectionObject } from "../config/redis.js";
 import { passwordlessAuthenticationEmployee, retryEmailVerification, saveInRedisQueueEmployee } from "./queue.js";
-import { AddJobToQueueLabelInterface, RegisterWorkerLabelInterface } from "../interface/logger.js";
+import { AddJobToQueueLabelType, RegisterWorkerLabelType } from "./logger.js";
 import { Constants } from "./constants.js";
-import { frontendUrl, serverUrl } from "../config/config.js";
+import { serverUrl } from "../config/config.js";
 
 interface QueueInterface {
     addJobToQueue(tracerId: string, labels, queueWorker: string, params: {}, maxAttempts?: number, lockDuration?: number, backOffDelay?: number): Promise<void>;
@@ -35,7 +35,7 @@ class QueueImpl implements QueueInterface {
             lockDuration: _.defaultTo(lockDuration, Constants.QUEUE_DB.LOCK_DURATION),
         };
         
-        const queueLabel: AddJobToQueueLabelInterface = {
+        const queueLabel: AddJobToQueueLabelType = {
             operation: labels.operation,
             subOperation: Constants.LOKI_LOGGER_LABELS.ADD_JOB_TO_QUEUE,
             type: labels.type,
@@ -75,7 +75,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { key, value, timeout } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type
@@ -104,7 +104,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { token, name, email } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type
@@ -124,7 +124,7 @@ class QueueImpl implements QueueInterface {
                         name: name,
                         email: email
                     }
-                }, registerWorkerLabel, Constants.NODE_MAILER_MESSAGE.VERIFY_ACCOUNT_SUBJECT, Constants.EJS_PATHS.RETRY_EMAIL_VERIFICATION, Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION_CSS, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION, url);
+                }, registerWorkerLabel, Constants.NODE_MAILER_MESSAGE.VERIFY_ACCOUNT_SUBJECT, Constants.EJS_PATHS.RETRY_EMAIL_VERIFICATION, Constants.EJS_PATHS.RETRY_EMAIL_VERIFICATION_CSS, Constants.NODE_MAILER_MESSAGE.SEND_EMAIL_FOR_VERIFICATION, url);
             }
             catch (error) {
                 loggerDefaultParams = helper.generateDefaultFailureParams(tracerId, Constants.LOKI_LOGGER_LABELS.WORKER, Constants.QUEUE_DB.EMAIL_VERIFICATION);
@@ -140,7 +140,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { token, email } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type
