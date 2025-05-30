@@ -67,7 +67,7 @@ class UtilsImpl implements Utils {
         }
     }
     
-    prepareGoogleAuthenticationRequest(userDeviceInformation: DeviceInterface, rawGoogleAuthenticationRequest: any) {
+    prepareGoogleAuthenticationRequest(userDeviceInformation: DeviceType, rawGoogleAuthenticationRequest: any) {
         return {
             userDeviceInformation: userDeviceInformation,
             userGoogleAuthenticationRequest: rawGoogleAuthenticationRequest,

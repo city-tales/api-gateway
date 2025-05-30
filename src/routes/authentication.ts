@@ -56,9 +56,11 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
 
 router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const token = req.params.id;
+    let isError: boolean = true;
+
     /* Change the title with logo and org */
     if(!networkHelper.checkTokenValidity(token)) {
-        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: true });
+        return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: false, messageToShow: Constants.JWT.INVALID, isError: isError });
     }
 
     const labels = {
@@ -68,6 +70,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.EMAIL_VERIFICATION}}`;
     let loggerDefaultParams = {};
+    
     let logPayload = {
         labels,
         url: url,
@@ -97,12 +100,24 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
             context,
         );
 
+        if(response.statusCode === Constants.STATUS_CODES.OK || response.statusCode === Constants.STATUS_CODES.CREATED) {
+            const decryptedAuthToken = helper.decryptAuthToken(token);
+            if(decryptedAuthToken.source === Constants.AUTH_CHANNELS.PASSWORDLESS) {
+                return helper.sendStatusSuccessResponse(res, response.statusCode, response);
+            }
+
+            isError = false;
+
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.EMAIL_VERIFICATION, source);
         logPayload = { ...logPayload, ...loggerDefaultParams };
         logPayload = helper.logResponse(logPayload, response);
         logger.info({ ...logPayload });
         
         networkHelper.setCookie(res, token);
+    }
+        else {
+            response.success = false;
+        }
     }
     catch (error) {
         response.message = Constants.LOGIN_MESSAGE.VERIFICATION_FAILED;
@@ -113,7 +128,7 @@ router.get(`${Constants.ROUTES.EMAIL_VERIFICATION}`, async (req, res) => {
         logger.error({ ...logPayload });
     }
 
-    res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: false });
+    return res.render(Constants.EJS_PATHS.REDIRECT_EMAIL_VERIFICATION, { frontendUrl, buttonToShow: response.success, messageToShow: response.message, isError: isError });
 });
 
 router.get(`${Constants.ROUTES.MAGIC_LINK}/:id`, async (req, res) => {
@@ -324,27 +339,6 @@ const emailSignUp = async (req, res) => {
         );
 
         if (response.message === Constants.SIGNUP_MESSAGE.CREATED || Constants.SIGNUP_MESSAGE.EXISTING_USER) {
-            if (helper.isNeitherNullNorUndefined(response.token)) {
-                const payload = helper.decryptAuthToken(response.token);
-                const userInfoForRedisKey = {
-                    email: emailSignUpRequest.userEmailSignUpRequest.email,
-                };
-                const redisKey: string = helper.serialiseRedisKeyValues(
-                    helper.prepareUserRedisKeyValues(Constants.SERIALISATION_KEYS.USER, userInfoForRedisKey)
-                );
-                const redisEmailValue: Object = {
-                    _id: payload._id,
-                    name: emailSignUpRequest.userEmailSignUpRequest.name,
-                    username: payload.username,
-                    email: payload.email,
-                };
-
-                await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.DB.SAVE_IN_REDIS, {
-                    key: redisKey,
-                    value: helper.serialiseRedisKeyValues(redisEmailValue)
-                });
-            }
-
             if(!response.verified) {
                 /* Customise data for magic link */
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {
@@ -353,9 +347,7 @@ const emailSignUp = async (req, res) => {
                     email: emailSignUpRequest.userEmailSignUpRequest.email
                 });
             }
-            else {
                 networkHelper.setCookie(res, response.token);
-            }
         }
 
         loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.SIGNUP_REQUEST);
