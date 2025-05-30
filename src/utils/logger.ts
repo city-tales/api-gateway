@@ -1,10 +1,10 @@
-export interface AddJobToQueueLabelInterface {
+export type AddJobToQueueLabelType = {
     operation: string,
     subOperation: string,
     type: string,
 };
 
-export interface RegisterWorkerLabelInterface {
+export type RegisterWorkerLabelType = {
     operation: string,
     subOperation: string,
     type: string,

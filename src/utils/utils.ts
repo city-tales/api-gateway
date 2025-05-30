@@ -1,14 +1,14 @@
-import { uuidv4 } from "../config/imports.js";
-import { DeviceInterface } from "./interface.js";
+import { StringOrNull } from "./custom_types.js";
+import { DeviceType } from "./types.js";
 
 interface Utils {
-    parseDeviceInfo(req: any): DeviceInterface;
+    parseDeviceInfo(req: any): DeviceType;
     rawGoogleAuthenticationRequest(payload: any);
-    prepareGoogleAuthenticationRequest(userDeviceInformation: DeviceInterface, rawGoogleAuthenticationRequest: any);
+    prepareGoogleAuthenticationRequest(userDeviceInformation: DeviceType, rawGoogleAuthenticationRequest: any);
 }
 
 class UtilsImpl implements Utils {
-    parseDeviceInfo(req: any): DeviceInterface {
+    parseDeviceInfo(req: any): DeviceType {
         const headers = req.headers;
         const ua = headers['user-agent'] || '';
         const chUa = headers['sec-ch-ua'] || '';

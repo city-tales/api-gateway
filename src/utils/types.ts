@@ -1,10 +1,10 @@
 import { StringOrNull, StringOrNullOrUndefined } from "./custom_types.js";
 
-export interface RedisEmailKeySerialisation {
+export type RedisEmailKeySerialisation = {
     email: StringOrNullOrUndefined,
 };
 
-export interface DeviceInterface {
+export type DeviceType = {
     deviceType?: StringOrNull,
     browserInfo?: StringOrNull,
     ipAddress?: StringOrNull,

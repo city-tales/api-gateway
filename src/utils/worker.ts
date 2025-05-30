@@ -3,7 +3,7 @@ import { _, Job, Worker } from "../config/imports.js";
 import { logger } from "../config/loki.js";
 import { bullMQConnectionObject } from "../config/redis.js";
 import { passwordlessAuthenticationEmployee, retryEmailVerification, saveInRedisQueueEmployee } from "./queue.js";
-import { AddJobToQueueLabelInterface, RegisterWorkerLabelInterface } from "../interface/logger.js";
+import { AddJobToQueueLabelType, RegisterWorkerLabelType } from "./logger.js";
 import { Constants } from "./constants.js";
 import { frontendUrl, serverUrl } from "../config/config.js";
 
@@ -35,7 +35,7 @@ class QueueImpl implements QueueInterface {
             lockDuration: _.defaultTo(lockDuration, Constants.QUEUE_DB.LOCK_DURATION),
         };
         
-        const queueLabel: AddJobToQueueLabelInterface = {
+        const queueLabel: AddJobToQueueLabelType = {
             operation: labels.operation,
             subOperation: Constants.LOKI_LOGGER_LABELS.ADD_JOB_TO_QUEUE,
             type: labels.type,
@@ -75,7 +75,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { key, value, timeout } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type
@@ -104,7 +104,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { token, name, email } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type
@@ -140,7 +140,7 @@ class QueueImpl implements QueueInterface {
             const { params, tracerId, queueLabel } = job.data;
             const { token, email } = params;
 
-            const registerWorkerLabel: RegisterWorkerLabelInterface = {
+            const registerWorkerLabel: RegisterWorkerLabelType = {
                 operation: queueLabel.operation,
                 subOperation: Constants.LOKI_LOGGER_LABELS.REGISTER_JOB,
                 type: queueLabel.type

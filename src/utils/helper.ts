@@ -6,7 +6,7 @@ import { Constants } from "./constants.js";
 import { __dirname } from "../config/server.js";
 import { cacheDB } from "../config/redis.js";
 import { RedisResponse } from "./response.js";
-import { RedisEmailKeySerialisation } from "./interface.js";
+import { RedisEmailKeySerialisation } from "./types.js";
 import { BooleanOrNullOrUndefined, NumberOrNull, NumberOrNullOrUndefined, StringOrNullOrUndefined, StringOrUndefined } from "./custom_types.js";
 
 interface Helper {
