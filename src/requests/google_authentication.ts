@@ -1,6 +1,6 @@
 import { z } from "../config/imports.js";
 
-export const RawGoogleAuthenticationInterface = z.object({
+export const RawGoogleAuthenticationHTTPRequest = z.object({
     email: z.string().email(),
     firstName: z.string(),
     lastName: z.string(),
@@ -9,7 +9,7 @@ export const RawGoogleAuthenticationInterface = z.object({
     verifiedEmail: z.boolean(),
 });
 
-export const GoogleAuthenticationInterface = z.object({
+export const GoogleAuthenticationHTTPRequest = z.object({
     userDeviceInformation: z.object({
         deviceType: z.string(),
         browserInfo: z.string(),

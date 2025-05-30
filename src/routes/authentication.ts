@@ -2,21 +2,22 @@ import { logger } from "../config/loki.js";
 import { cacheDB } from "../config/redis.js";
 import { clients } from "../config/registery.js";
 import { Services } from "../config/services.js";
-import { EmailLoginInterface } from "../interface/email_login.js";
-import { EmailSignUpInterface } from "../interface/email_signup.js";
+import { EmailLoginHTTPRequest } from "../requests/email_login.js";
+import { EmailSignUpHTTPRequest } from "../requests/email_signup.js";
 import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
-import { grpcRequest } from "../utils/grpc.js";
 import { EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
 import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
-import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi } from "../config/config.js";
-import { PasswordlessAuthenticationInterface } from "../interface/passwordless_authentication.js";
+import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi, serverUrl } from "../config/config.js";
+import { PasswordlessAuthenticationHTTPRequest } from "../requests/passwordless_authentication.js";
 import { axios } from "../config/imports.js";
-import { GoogleAuthenticationInterface, RawGoogleAuthenticationInterface } from "../interface/google_authentication.js";
+import { GoogleAuthenticationHTTPRequest, RawGoogleAuthenticationHTTPRequest } from "../requests/google_authentication.js";
 import { utils } from "../utils/utils.js";
+import { grpcProtoRequest } from "./grpc_requests.js";
+import { grpcRequest } from "../utils/grpc.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -164,13 +165,13 @@ router.get(`${Constants.ROUTES.GOOGLE_CALLBACK}`, async (req, res) => {
             headers: { Authorization: `Bearer ${access_token}` }
         });
 
-        const rawGoogleAuthenticationRequest = RawGoogleAuthenticationInterface.parse(utils.rawGoogleAuthenticationRequest(userData?.data));
+        const rawGoogleAuthenticationRequest = RawGoogleAuthenticationHTTPRequest.parse(utils.rawGoogleAuthenticationRequest(userData?.data));
         if(rawGoogleAuthenticationRequest && rawGoogleAuthenticationRequest?.verifiedEmail !== true) {
             throw new Error(Constants.GOOGLE_AUTHENTICATION_MESSAGE.NOT_VERIFIED);
         }
 
         const userDeviceInformation = utils.parseDeviceInfo(req);
-        const googleAuthenticationRequest = GoogleAuthenticationInterface.parse(utils.prepareGoogleAuthenticationRequest(userDeviceInformation, rawGoogleAuthenticationRequest));
+        const googleAuthenticationRequest = grpcProtoRequest.googleAuthenticationRequest(rawGoogleAuthenticationRequest, userDeviceInformation);
         const url = `${req.baseUrl}${Constants.ROUTES.GOOGLE_CALLBACK}`;
 
         logPayload.url = url;
@@ -213,7 +214,10 @@ const emailLogin = async (req, res) => {
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
-    const emailLoginRequest = EmailLoginInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const rawEmailLoginRequest = EmailLoginHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const emailLoginRequest = grpcProtoRequest.emailLoginRequest(rawEmailLoginRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.LOGIN}`;
     let response = new LoginResponse();
@@ -292,7 +296,10 @@ const emailSignUp = async (req, res) => {
         return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
     }
 
-    const emailSignUpRequest = EmailSignUpInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const rawEmailSignUpRequest = EmailSignUpHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const emailSignUpRequest = grpcProtoRequest.emailSignUpRequest(rawEmailSignUpRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.SIGNUP}`;
     let response = new SignUpResponse();
@@ -422,7 +429,15 @@ const retryEmailVerification = async (req, res) => {
 };
 
 const magicLinkPasswordless = async (req, res) => {
-    const passwordlessAuthenticationRequest = PasswordlessAuthenticationInterface.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    /* if(networkHelper.isUserToBeRedirectedToHome(req)) {
+        networkHelper.setCookie(res, req.cookies[Constants.REQUEST_HEADERS.TOKEN]);
+        return res.redirect(FRONTEND_ROUTES.HOME_PAGE);
+    } */
+
+    const rawPasswordlessAuthenticationRequest = PasswordlessAuthenticationHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const userDeviceInformation = utils.parseDeviceInfo(req);
+    const passwordlessAuthenticationRequest = grpcProtoRequest.passwordlessAuthenticationRequest(rawPasswordlessAuthenticationRequest, userDeviceInformation);
+
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.MAGIC_LINK}`;
     let response = new PasswordlessAuthenticationResponse();
