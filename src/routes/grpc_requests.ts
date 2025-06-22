@@ -21,6 +21,13 @@ class GRPCRequestImpl implements GRPCRequest {
         };
     }
 
+    emailForgotPasswordRequest(emailForgotPasswordRequest: any, userDeviceInformation: DeviceType) {
+        return {
+            userEmailForgotPasswordRequest: { ...emailForgotPasswordRequest },
+            userDeviceInformation: { ...userDeviceInformation }
+        };
+    }
+
     passwordlessAuthenticationRequest(passwordlessAuthenticationRequest: any, userDeviceInformation: DeviceType) {
         return {
             userPasswordlessAuthenticationRequest: { ...passwordlessAuthenticationRequest },
