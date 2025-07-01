@@ -581,15 +581,17 @@ const forgotPassword = async (req, res) => {
 
 const updatePasswordForEmail = async (req, res) => {
     const rawUpdatePasswordForEmailHTTPRequest = UpdatePasswordForEmailHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
-    const updatePasswordForEmailRequest = grpcProtoRequest.updatePasswordForEmailRequest(rawUpdatePasswordForEmailHTTPRequest);
+    const rawToken = req[Constants.REQUEST_PAYLOAD.HEADERS];
+    const sanitisedToken = helper.decryptAuthToken(rawToken);
+    const updatePasswordForEmailRequest = grpcProtoRequest.updatePasswordForEmailRequest(sanitisedToken.id, rawUpdatePasswordForEmailHTTPRequest);
 
     const context = helper.generateContext();
-    const url = `${req.baseUrl}${Constants.ROUTES.MAGIC_LINK}`;
+    const url = `${req.baseUrl}${Constants.ROUTES.UPDATE_PASSWORD_FOR_EMAIL}`;
     let response = new UpdateEmailForPasswordResponse();
 
     const labels = {
-        operation: Constants.LOKI_LOGGER_LABELS.PASSWORDLESS,
-        type: Constants.LOKI_LOGGER_LABELS.MAGIC_LINK,
+        operation: Constants.LOKI_LOGGER_LABELS.UPDATE_PASSWORD_FOR_EMAIL,
+        type: Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD,
     }
     let loggerDefaultParams = {};
     let logPayload = {
@@ -597,6 +599,37 @@ const updatePasswordForEmail = async (req, res) => {
         url: url,
         updatePasswordForEmailRequest, 
     };
+
+    try {
+        response = await grpcRequest(
+            clients[Services.RpcRequest.AuthRpcRequest],
+            Services.AuthRpcServices.UpdatePasswordForEmail,
+            updatePasswordForEmailRequest,
+            context,
+        );
+
+        if (response.statusCode === Constants.STATUS_CODES.OK && response.success) {
+            networkHelper.setCookie(res, rawToken);
+        }
+        else {
+            throw new Error(response.message);
+        }
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+    }
+
+    logger.info({ ...logPayload });
+    return helper.sendStatusSuccessResponse(res, response.statusCode, response);
 };
 
 export {

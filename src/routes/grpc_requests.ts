@@ -3,7 +3,10 @@ import { DeviceType } from "../utils/types.js";
 interface GRPCRequest {
     emailSignUpRequest(emailSignUpRequest, userDeviceInformation: DeviceType);
     emailLoginRequest(emailLoginRequest, userDeviceInformation: DeviceType);
+    emailForgotPasswordRequest(emailForgotPasswordRequest: any, userDeviceInformation: DeviceType);
     passwordlessAuthenticationRequest(passwordlessAuthenticationRequest: any, userDeviceInformation: DeviceType);
+    googleAuthenticationRequest(googleAuthenticationRequest: any, userDeviceInformation: DeviceType);
+    updatePasswordForEmailRequest(id: string, updatePasswordForEmailRequest: any);
 }
 
 class GRPCRequestImpl implements GRPCRequest {
@@ -42,9 +45,10 @@ class GRPCRequestImpl implements GRPCRequest {
         }
     }
 
-    updatePasswordForEmailRequest(updatePasswordForEmailRequest: any) {
-        return {
-            userUpdatePasswordForEmailRequest: { ...updatePasswordForEmailRequest },
+    updatePasswordForEmailRequest(id: string, updatePasswordForEmailRequest: any) {
+        return { 
+            id: id, 
+            ...updatePasswordForEmailRequest 
         }
     }
 }
