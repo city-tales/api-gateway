@@ -26,6 +26,7 @@ enum QUEUE_DB {
     LOCK_DURATION = 30000,
     CONCURRENCY = 5,
     EMAIL_VERIFICATION = 'emailVerification',
+    FORGOT_PASSWORD = 'forgotPassword',
     PASSWORDLESS = 'passwordless',
     PASSWORDLESS_BACKGROUND_VERIFICATION = 'passwordlessBackgroundVerification',
 };
@@ -60,6 +61,7 @@ enum LOKI_LOGGER_LABELS {
     SIGNUP_REQUEST = 'signupRequest',
     LOGIN_REQUEST = 'loginRequest',
     EMAIL_VERIFICATION = 'emailVerification',
+    FORGOT_PASSWORD = 'forgotPassword',
     GOOGLE_AUTHENTICATION = 'googleAuthentication',
     MAGIC_LINK = 'magicLink',
     MAGIC_LINK_BACKGROUND_VERIFICATION = 'magicLinkBackgroundVerification',
@@ -90,6 +92,7 @@ enum ROUTES {
     RETRY_EMAIL_VERIFICATION = '/email/retryverification',
     EMAIL_VERIFICATION = '/verify/:id',
     MAGIC_LINK = '/passwordless/magiclink',
+    FORGOT_PASSWORD = '/email/forgotPassword',
     PASSWORDLESS = '/:id',
     GOOGLE_INITIATION = '/auth/google',
     GOOGLE_CALLBACK = '/auth/google/callback',
@@ -109,6 +112,7 @@ enum AUTH_PURPOSE {
     SIGNUP = 'register',
     LOGIN = 'login',
     RETRY_EMAIL_VERIFICATION = 'retryemailverification',
+    FORGOT_PASSWORD = 'forgotPassword',
     MAGIC_LINK = 'magiclink',
     OTP = 'otp',
 };
@@ -197,6 +201,20 @@ enum LOGIN_MESSAGE {
     FAILED = 'Server Error',
 };
 
+enum FORGOT_PASSWORD_MESSAGE {
+    EMPTY = '',
+    EMPTY_TOKEN = '',
+    PROCESSING = 'Processing',
+    NOT_VERIFIED = 'Please verify email',
+    NO_CONTENT = 'Account do not exists',
+    EMAIL_DO_NOT_EXISTS = 'Email do not exists',
+    EMAIL_VERIFIED = 'Email successfully verified',
+    WRONG_AUTHENTICATION = 'Wrong Password',
+    VERIFICATION_FAILED = 'Retry Verification',
+    SUCCESS = 'Send Email for update',
+    FAILED = 'Server Error',
+};
+
 enum PASSWORDLESS_AUTHENTICATION_MESSAGE {
     EMPTY = '',
     EMPTY_TOKEN = '',
@@ -226,7 +244,9 @@ enum REDIS_MESSAGE {
 
 enum NODE_MAILER_MESSAGE {
     SEND_EMAIL_FOR_VERIFICATION = 'sendEmailForVerification',
+    SEND_EMAIL_TO_RESET_PASSWORD = 'sendEmailToResetPassword',
     VERIFY_ACCOUNT_SUBJECT = 'Verify Account',
+    FORGOT_PASSWORD_SUBJECT = 'Reset Password',
     MAGIC_LINK_SUBJECT = 'Magic Link',
     ENCODING = 'utf8',
 };
@@ -234,6 +254,8 @@ enum NODE_MAILER_MESSAGE {
 enum EJS_PATHS {
     RETRY_EMAIL_VERIFICATION = './views/email_verify.ejs',
     RETRY_EMAIL_VERIFICATION_CSS = './views/email_verify.css',
+    FORGOT_PASSWORD = './views/forgot_password.ejs',
+    FORGOT_PASSWORD_CSS = './views/email_verify.css',
     MAGIC_LINK = './views/magic_link.ejs',
     MAGIC_LINK_CSS = './views/magic_link.css',
     REDIRECT_EMAIL_VERIFICATION = './redirect_email_verification.ejs',
@@ -415,6 +437,7 @@ export class Constants {
 
     static readonly SIGNUP_MESSAGE = SIGNUP_MESSAGE;
     static readonly LOGIN_MESSAGE = LOGIN_MESSAGE;
+    static readonly FORGOT_PASSWORD_MESSAGE = FORGOT_PASSWORD_MESSAGE;
     static readonly PASSWORDLESS_AUTHENTICATION_MESSAGE = PASSWORDLESS_AUTHENTICATION_MESSAGE;
     static readonly GOOGLE_AUTHENTICATION_MESSAGE = GOOGLE_AUTHENTICATION_MESSAGE;
     static readonly REDIS_MESSAGE = REDIS_MESSAGE;

@@ -10,6 +10,11 @@ export const retryEmailVerification = new Queue(Constants.QUEUE_DB.EMAIL_VERIFIC
     connection: bullMQConnectionObject.connection
 });
 
+export const forgotPasswordEmployee = new Queue(Constants.QUEUE_DB.FORGOT_PASSWORD, {
+    connection: bullMQConnectionObject.connection
+});
+
+
 export const passwordlessAuthenticationEmployee = new Queue(Constants.QUEUE_DB.PASSWORDLESS, {
     connection: bullMQConnectionObject.connection
 });

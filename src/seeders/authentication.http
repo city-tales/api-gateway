@@ -37,3 +37,13 @@ curl --location 'http://localhost:8080/api/authentication' \
     "email": "ankitanand2125@gmail.com"
 }'
 ***************************************************
+
+***************************************************
+curl --location 'http://localhost:8080/api/authentication' \
+--header 'purpose: forgotPassword' \
+--header 'channel: email' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "ankitanand2125@gmail.com"
+}'
+***************************************************
