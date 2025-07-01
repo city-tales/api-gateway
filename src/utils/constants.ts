@@ -63,6 +63,7 @@ enum LOKI_LOGGER_LABELS {
     EMAIL_VERIFICATION = 'emailVerification',
     FORGOT_PASSWORD = 'forgotPassword',
     GOOGLE_AUTHENTICATION = 'googleAuthentication',
+    UPDATE_PASSWORD_FOR_EMAIL = 'updatePasswordForEmail',
     MAGIC_LINK = 'magicLink',
     MAGIC_LINK_BACKGROUND_VERIFICATION = 'magicLinkBackgroundVerification',
 
@@ -93,6 +94,7 @@ enum ROUTES {
     EMAIL_VERIFICATION = '/verify/:id',
     MAGIC_LINK = '/passwordless/magiclink',
     FORGOT_PASSWORD = '/email/forgotPassword',
+    UPDATE_PASSWORD_FOR_EMAIL = '/email/updatePasswordForEmail',
     PASSWORDLESS = '/:id',
     GOOGLE_INITIATION = '/auth/google',
     GOOGLE_CALLBACK = '/auth/google/callback',
@@ -112,6 +114,7 @@ enum AUTH_PURPOSE {
     SIGNUP = 'register',
     LOGIN = 'login',
     RETRY_EMAIL_VERIFICATION = 'retryemailverification',
+    UPDATE_PASSWORD_FOR_EMAIL = 'updatePasswordForEmail',
     FORGOT_PASSWORD = 'forgotPassword',
     MAGIC_LINK = 'magiclink',
     OTP = 'otp',
@@ -235,6 +238,11 @@ enum GOOGLE_AUTHENTICATION_MESSAGE {
     NOT_VERIFIED = 'Please verify gmail account',
     SUCCESS = 'Logging In',
     FAILED = 'Server Error',
+};
+
+enum UPDATE_PASSWORD_FOR_EMAIL_MESSAGE {
+    SUCCESS = 'Password updated successfully',
+    FAILED = 'Password not updated'
 };
 
 enum REDIS_MESSAGE {
@@ -440,6 +448,7 @@ export class Constants {
     static readonly FORGOT_PASSWORD_MESSAGE = FORGOT_PASSWORD_MESSAGE;
     static readonly PASSWORDLESS_AUTHENTICATION_MESSAGE = PASSWORDLESS_AUTHENTICATION_MESSAGE;
     static readonly GOOGLE_AUTHENTICATION_MESSAGE = GOOGLE_AUTHENTICATION_MESSAGE;
+    static readonly UPDATE_PASSWORD_FOR_EMAIL_MESSAGE = UPDATE_PASSWORD_FOR_EMAIL_MESSAGE;
     static readonly REDIS_MESSAGE = REDIS_MESSAGE;
     static readonly NODE_MAILER_MESSAGE = NODE_MAILER_MESSAGE;
     static readonly EJS_PATHS = EJS_PATHS;

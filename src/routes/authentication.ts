@@ -7,7 +7,7 @@ import { EmailSignUpHTTPRequest } from "../requests/email_signup.js";
 import { verifyJwtToken } from "../middlewares/auth.js";
 import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
-import { EmailForgotPasswordResponse, EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse } from "../utils/response.js";
+import { EmailForgotPasswordResponse, EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse, UpdateEmailForPasswordResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
 import { router } from "./router.js";
 import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
@@ -18,6 +18,7 @@ import { GoogleAuthenticationHTTPRequest, RawGoogleAuthenticationHTTPRequest } f
 import { utils } from "../utils/utils.js";
 import { grpcProtoRequest } from "./grpc_requests.js";
 import { grpcRequest } from "../utils/grpc.js";
+import { UpdatePasswordForEmailHTTPRequest } from "../requests/update_password_for_email.js";
 import { EmailForgotPasswordHTTPRequest } from "../requests/forgot_password.js";
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
@@ -31,6 +32,7 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
             [Constants.AUTH_PURPOSE.SIGNUP]: emailSignUp,
             [Constants.AUTH_PURPOSE.RETRY_EMAIL_VERIFICATION]: retryEmailVerification,
             [Constants.AUTH_PURPOSE.FORGOT_PASSWORD]: forgotPassword,
+            [Constants.AUTH_PURPOSE.UPDATE_PASSWORD_FOR_EMAIL]: updatePasswordForEmail,
         },
         [Constants.AUTH_CHANNELS.PASSWORDLESS]: {
             [Constants.AUTH_PURPOSE.MAGIC_LINK]: magicLinkPasswordless,
@@ -557,6 +559,59 @@ const forgotPassword = async (req, res) => {
             networkHelper.setCookie(res, response.token);
         }
         else if(response) {
+            throw new Error(response.message);
+        }
+
+        loggerDefaultParams = helper.generateDefaultSuccessParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logResponse(logPayload, response);
+    }
+    catch (error) {
+        loggerDefaultParams = helper.generateDefaultFailureParams(context.tracerId, Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD);
+        logPayload = { ...logPayload, ...loggerDefaultParams };
+        logPayload = helper.logErrorStack(logPayload, error);
+        logger.error({ ...logPayload });
+
+        return helper.sendStatusErrorResponse(res, error.message, error.statusCode);
+    }
+
+    logger.info({ ...logPayload });
+    return helper.sendStatusSuccessResponse(res, response.statusCode, response);
+};
+
+const updatePasswordForEmail = async (req, res) => {
+    const rawUpdatePasswordForEmailHTTPRequest = UpdatePasswordForEmailHTTPRequest.parse(req[Constants.REQUEST_PAYLOAD.BODY]);
+    const rawToken = req[Constants.REQUEST_PAYLOAD.HEADERS];
+    const sanitisedToken = helper.decryptAuthToken(rawToken);
+    const updatePasswordForEmailRequest = grpcProtoRequest.updatePasswordForEmailRequest(sanitisedToken.id, rawUpdatePasswordForEmailHTTPRequest);
+
+    const context = helper.generateContext();
+    const url = `${req.baseUrl}${Constants.ROUTES.UPDATE_PASSWORD_FOR_EMAIL}`;
+    let response = new UpdateEmailForPasswordResponse();
+
+    const labels = {
+        operation: Constants.LOKI_LOGGER_LABELS.UPDATE_PASSWORD_FOR_EMAIL,
+        type: Constants.LOKI_LOGGER_LABELS.FORGOT_PASSWORD,
+    }
+    let loggerDefaultParams = {};
+    let logPayload = {
+        labels,
+        url: url,
+        updatePasswordForEmailRequest, 
+    };
+
+    try {
+        response = await grpcRequest(
+            clients[Services.RpcRequest.AuthRpcRequest],
+            Services.AuthRpcServices.UpdatePasswordForEmail,
+            updatePasswordForEmailRequest,
+            context,
+        );
+
+        if (response.statusCode === Constants.STATUS_CODES.OK && response.success) {
+            networkHelper.setCookie(res, rawToken);
+        }
+        else {
             throw new Error(response.message);
         }
 
