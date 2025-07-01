@@ -34,6 +34,12 @@ class GRPCRequestImpl implements GRPCRequest {
             userDeviceInformation: { ...userDeviceInformation },
         }
     }
+
+    updatePasswordForEmailRequest(updatePasswordForEmailRequest: any) {
+        return {
+            userUpdatePasswordForEmailRequest: { ...updatePasswordForEmailRequest },
+        }
+    }
 }
 
 export const grpcProtoRequest = new GRPCRequestImpl();
