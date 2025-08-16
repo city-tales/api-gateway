@@ -6,7 +6,7 @@ import { createLogger, LokiTransport, winston } from "./imports.js";
 const options = {
     transports: [
         new LokiTransport({
-            host: lokiLoggerUrl!,
+            host: `${lokiLoggerUrl}`,
             labels: { 
                 application: Constants.LOKI_LOGGER.APPLICATION,
                 environment: helper.convertToType<boolean>(Constants.DEMO_SWITCH.LOKI_LOGGER, Constants.TYPE_SWITCH.BOOLEAN) ? Constants.LOKI_LOGGER.DEMOENV : Constants.LOKI_LOGGER.PRODENV,
