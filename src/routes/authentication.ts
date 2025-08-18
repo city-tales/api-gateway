@@ -9,7 +9,6 @@ import { Constants } from "../utils/constants.js";
 import { helper } from "../utils/helper.js";
 import { EmailForgotPasswordResponse, EmailVerificationResponse, GoogleAuthenticationResponse, LoginResponse, PasswordlessAuthenticationResponse, SignUpResponse, UpdateEmailForPasswordResponse } from "../utils/response.js";
 import { queueEmployee } from "../utils/worker.js";
-import { router } from "./router.js";
 import { FRONTEND_ROUTES, networkHelper } from "../utils/network.js";
 import { frontendUrl, googleClientId, googleClientSecret, googleRedirectUrl, googleTokenApi, serverUrl } from "../config/config.js";
 import { PasswordlessAuthenticationHTTPRequest } from "../requests/passwordless_authentication.js";
@@ -20,6 +19,8 @@ import { grpcProtoRequest } from "./grpc_requests.js";
 import { grpcRequest } from "../utils/grpc.js";
 import { UpdatePasswordForEmailHTTPRequest } from "../requests/update_password_for_email.js";
 import { EmailForgotPasswordHTTPRequest } from "../requests/forgot_password.js";
+import { createRouter } from "./router.js";
+const router = createRouter();
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];

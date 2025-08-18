@@ -1,7 +1,13 @@
 import { express } from "../config/imports.js";
 
-const router = express.Router();
+/**
+ * Creates and returns a new Express router instance
+ * @returns {import('express').Router} A new Express router instance
+ */
+const createRouter = () => {
+    return express.Router();
+};
 
 export {
-    router
+    createRouter
 };
