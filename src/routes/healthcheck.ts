@@ -5,7 +5,8 @@ import { Constants } from "../utils/constants.js";
 import { grpcRequest } from "../utils/grpc.js";
 import { helper } from "../utils/helper.js";
 import { HealthCheckResponse } from "../utils/response.js";
-import { router } from "./router.js";
+import { createRouter } from "./router.js";
+const router = createRouter();
 
 router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
     const { channel, purpose } = req[Constants.REQUEST_PAYLOAD.HEADERS];
@@ -35,9 +36,7 @@ router.post(`${Constants.ROUTES.HOME}`, async (req, res) => {
 });
 
 const healthCheck = async (req, res) => {
-    const healthCheckRequest = {
-        service: `${Constants.SERVICES.AUTHENTICATION}`
-    }
+    const healthCheckRequest = req[Constants.REQUEST_PAYLOAD.BODY];
     const context = helper.generateContext();
     const url = `${req.baseUrl}${Constants.ROUTES.HEALTHCHECK}`;
     let response = new HealthCheckResponse();
