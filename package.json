@@ -7,8 +7,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc && cp -r src/views dist/views",
-    "start": "node dist/index.js",
-    "pretty": "prettier --print-width 160 --write \"**/*.ts\""
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "Ankit Anand",
@@ -35,7 +36,13 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,css,scss,md,mdx,html,json,yml,yaml}": [
+      "npx prettier --write"
+    ]
   }
 }
