@@ -6,6 +6,7 @@ enum AuthRpcServices {
     GoogleAuthentication = 'GoogleAuthentication',
     PasswordlessAuthentication = 'PasswordlessAuthentication',
     UpdatePasswordForEmail = 'UpdatePasswordForEmail',
+    HealthCheck = 'HealthCheck',
 };
 
 enum RpcRequest {

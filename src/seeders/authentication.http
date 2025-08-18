@@ -1,3 +1,14 @@
+********************* HealthCheck ******************
+curl --location 'http://localhost:8000/api/healthcheck' \
+--header 'channel: healthcheck' \
+--header 'purpose: healthcheck' \
+--header 'Content-Type: application/json' \
+--data '{
+    "service": "authentication"
+}'
+*****************************************************
+
+
 ********************* Login ************************
 curl --location 'http://localhost:8080/api/authentication' \
 --header 'purpose: login' \

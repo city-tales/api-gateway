@@ -1,11 +1,12 @@
 import 'dotenv/config';
 
+const nodeEnv = process.env.NODE_ENV;
 const organisation = process.env.ORGANISATION;
 const year = process.env.YEAR;
 const address = process.env.ADDRESS;
 const organisationContact = process.env.ORGANISATION_CONTACT;
 const port = process.env.PORT;
-const jwtPublicKey = process.env.JWT_PUBLIC_KEY;
+const jwtPublicKey = process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n');
 const serverUrl = process.env.SERVER_URL;
 const frontendUrl = process.env.FRONTEND_URL;
 const grpcBaseUrl = process.env.GRPC_BASE_URL;
@@ -32,6 +33,7 @@ const googleRedirectUrl = process.env.GOOGLE_REDIRECT_URL;
 const googleTokenApi = process.env.GOOGLE_TOKEN_API;
 
 export {
+    nodeEnv,
     organisation,
     year,
     address,

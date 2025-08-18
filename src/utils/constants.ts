@@ -1,7 +1,13 @@
 import { serverUrl } from "../config/config.js";
 
+enum SERVICES {
+    AUTHENTICATION = 'authentication',
+}
+
 enum DEV_CONTROLLER {
-    SWTICH_OFF_REDIS = 'false'
+    SWTICH_OFF_REDIS = 'false',
+    PRODUCTION = 'production',
+    DEMO = 'demo',
 };
 
 enum DEMO_SWITCH {
@@ -50,6 +56,7 @@ enum LOKI_LOGGER {
 };
 
 enum LOKI_LOGGER_LABELS {
+    HEALTHCHECK = 'healthCheck',
     ADD_JOB_TO_QUEUE = 'addJobToQueue',
     JOB_ADDED = 'jobAddedToQueue',
     REGISTER_JOB = 'registerWorker',
@@ -88,6 +95,7 @@ enum SERIALISATION_KEYS {
 enum ROUTES {
     HOME = '/',
     AUTHENTICATION = '/api/authentication',
+    HEALTHCHECK = '/api/healthcheck',
     SIGNUP = '/email/register',
     LOGIN = '/email/login',
     RETRY_EMAIL_VERIFICATION = '/email/retryverification',
@@ -107,7 +115,8 @@ export const URL = {
 enum AUTH_CHANNELS {
     EMAIL = 'email',
     GOOGLE = 'google',
-    PASSWORDLESS = 'passwordless'
+    PASSWORDLESS = 'passwordless',
+    HEALTHCHECK = 'healthcheck',
 };
 
 enum AUTH_PURPOSE {
@@ -118,6 +127,7 @@ enum AUTH_PURPOSE {
     FORGOT_PASSWORD = 'forgotPassword',
     MAGIC_LINK = 'magiclink',
     OTP = 'otp',
+    HEALTHCHECK = 'healthcheck',
 };
 
 enum AUTH_RESPONSE {
@@ -415,8 +425,15 @@ enum ERRORS {
     NETWORK_AUTHENTICATION_REQUIRED = "Network authentication is required to access this resource."
 };
 
+enum HEALTH_CHECK {
+    BACKUP = "faultyHealthService",
+    RUNNING = "running",
+    SERVICE = LOKI_LOGGER.APPLICATION,
+}
+
 export class Constants {
     static readonly DEV_CONTROLLER = DEV_CONTROLLER;
+    static readonly SERVICES = SERVICES;
     static readonly DEMO_SWITCH = DEMO_SWITCH;
 
     static readonly DB = DB;
@@ -456,4 +473,5 @@ export class Constants {
 
     static readonly STATUS_CODES = STATUS_CODES;
     static readonly ERRORS = ERRORS;
+    static readonly HEALTH_CHECK = HEALTH_CHECK;
 };

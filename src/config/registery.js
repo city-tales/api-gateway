@@ -1,6 +1,7 @@
 import { grpc, protoLoader, AUTH_PROTO_PATH } from "./imports.js";
-import { grpcBaseUrl } from "./config.js";
+import { grpcBaseUrl, nodeEnv } from "./config.js";
 import { Services } from "./services.js";
+import { Constants } from "../utils/constants.js";
 
 const options = {
     keepCase: true,
@@ -26,7 +27,7 @@ const clients = {};
 for (const [serviceName, ServiceConstructor] of Object.entries(rpcRequestServiceMap)) {
     clients[serviceName] = new ServiceConstructor(
         grpcBaseUrl,
-        grpc.credentials.createInsecure()
+        nodeEnv === Constants.DEV_CONTROLLER.PRODUCTION ? grpc.credentials.createSsl() : grpc.credentials.createInsecure()
     );
 }
 

@@ -380,7 +380,7 @@ const emailSignUp = async (req, res) => {
             context,
         );
 
-        if (response.message === Constants.SIGNUP_MESSAGE.CREATED || Constants.SIGNUP_MESSAGE.EXISTING_USER) {
+        if (response.message === Constants.SIGNUP_MESSAGE.CREATED || response.message === Constants.SIGNUP_MESSAGE.EXISTING_USER) {
             if (!response.verified) {
                 /* Customise data for magic link */
                 await queueEmployee.addJobToQueue(context.tracerId, labels, Constants.QUEUE_DB.EMAIL_VERIFICATION, {

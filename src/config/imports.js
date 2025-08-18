@@ -22,7 +22,7 @@ import juice from "juice";
 import axios from "axios";
 
 const server = express();
-const AUTH_PROTO_PATH = "../shared-proto/authentication/rpc_request.proto";
+const AUTH_PROTO_PATH = path.resolve(process.cwd(), "shared-proto/authentication/rpc_request.proto");
 
 export {
     express,
